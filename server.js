@@ -45,7 +45,7 @@ app.post("/send-email", (req, res) => {
   });
 });
 
-app.post("/verify-email", async function (req, res) {
+app.get("/verify-email", async function (req, res) {
   const { token } = req.query;
   console.log("Token" + token);
   await verifyUser(token);
