@@ -39,7 +39,7 @@ app.post("/send-email", (req, res) => {
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
-      return res.status(500).send(error.toString(), info.response);
+      return res.status(500).send(error, info);
     }
     res.status(200).send("Email sent: " + info.response);
   });
