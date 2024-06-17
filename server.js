@@ -27,8 +27,8 @@ const emailTemplate = (name, verificationLink) => `
 `;
 
 app.post("/send-email", (req, res) => {
-  const { to, subject, name, message } = req.body;
-  console.log(to, subject, name, message);
+  const { to, subject, name } = req.body;
+  console.log(to, subject, name);
   const verificationLink = `https://paf-email.onrender.com/verify-email?token=${to}`;
   const mailOptions = {
     from: "support@predictiveaf.com",
