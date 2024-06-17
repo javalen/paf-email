@@ -28,7 +28,7 @@ const emailTemplate = (name, verificationLink) => `
 
 app.post("/send-email", (req, res) => {
   const { to, subject, name } = req.body;
-  console.log(to, subject, name);
+  console.log("TO:", to, "Subject:", subject, "Name:", name);
   const verificationLink = `https://paf-email.onrender.com/verify-email?token=${to}`;
   const mailOptions = {
     from: "support@predictiveaf.com",
@@ -39,7 +39,7 @@ app.post("/send-email", (req, res) => {
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
-      return res.status(500).send(error.toString());
+      return res.status(500).send(error.toString(), info.response);
     }
     res.status(200).send("Email sent: " + info.response);
   });
