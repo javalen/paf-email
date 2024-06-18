@@ -105,6 +105,48 @@ const verificationSuccess = (name, client) => {
 `;
 };
 
+const verificationAcceptRole = (name, facility) => {
+  return `<div class="flex w-full flex-col gap-1 juice:empty:hidden juice:first:pt-[3px]">
+      <div class="markdown prose w-full break-words dark:prose-invert light">
+          <p><strong>Subject: Thank You for Verifying Your Email ${name}</strong></p>
+          <hr />
+          <p>Hi ${name},</p>
+          <p>Thank you for accepting role in ${facility}, your have successfully registered your account with PredictiveAF!</p>
+          <p>
+              We’re delighted to officially welcome you to our community. By verifying your email, you’ve unlocked the full potential of our predictive analytics platform. Get ready to transform your data into actionable insights and make
+              smarter decisions.
+          </p>
+          <h3>What’s Next?</h3>
+          <ol>
+              <li><strong>Explore Our Features:</strong> Dive into our suite of tools and discover how PredictiveAF can help you predict trends and optimize outcomes.</li>
+              <li><strong>Personalize Your Experience:</strong> Adjust your settings to receive the most relevant data and predictions tailored to your needs.</li>
+              <li><strong>Join the Community:</strong> Connect with other users, share insights, and learn from experts in our community forum.</li>
+          </ol>
+          <h3>Get Started</h3>
+          <p>To help you get started, we’ve prepared some resources:</p>
+          <ul>
+              <li><strong>Quick Start Guide:</strong> [Link to guide]</li>
+              <li><strong>Video Tutorials:</strong> [Link to tutorials]</li>
+              <li><strong>Support Center:</strong> [Link to support]</li>
+          </ul>
+          <p>If you have any questions or need assistance, our support team is here for you. Feel free to reach out to us anytime at [<a rel="noreferrer">support@predictiveaf.com</a>].</p>
+          <p>Thank you once again for choosing PredictiveAF. We’re excited to see how you’ll leverage our tools to drive success.</p>
+          <p>Best regards,</p>
+          <p>The PredictiveAF Team</p>
+          <hr />
+          <p><strong>Follow us on social media:</strong></p>
+          <ul>
+              <li><a rel="noreferrer" href="#">Facebook</a></li>
+              <li><a rel="noreferrer" href="#">Twitter</a></li>
+              <li><a rel="noreferrer" href="#">LinkedIn</a></li>
+          </ul>
+          <p><strong>Contact Us:</strong> PredictiveAF Inc. [Address Line 1] [Address Line 2] [<a rel="noreferrer">support@predictiveaf.com</a>]</p>
+          <hr />
+      </div>
+  </div>
+  `;
+};
+
 const addUserToFacility = (
   name,
   client,
@@ -173,11 +215,29 @@ app.get("/verify-email", async function (req, res) {
 app.get("/accept-role", async function (req, res) {
   const { token } = req.query;
   console.log("Token " + token);
-  //const { client, user } = await verifyUserAndClient(token);
-  //sendVerificaitonSuccessEmail(token, user.name, client.name);
+  const { name, facility } = await acceptRoleInFacility(token);
 
-  res.status(200).send(verificationSuccess(user.name, client.name));
+  res.status(200).send(verificationAcceptRole(name, facility));
 });
+
+const acceptRoleInFacility = async (id) => {
+  try {
+    const record = await pb.collection("new_users").getOne(id, {
+      expand: "personel,facility",
+    });
+
+    const newUser = await pb
+      .collection("new_users")
+      .update(record.id, { verified: true });
+    const personel = await pb
+      .collection("personel")
+      .update(record.expand.personel.id, { verified: true });
+
+    return { name: personel.full_name, facility: record.expand.facility.name };
+  } catch (error) {
+    console.log(`Error accepting role ${error}`);
+  }
+};
 
 app.post("/send-verify-success", (req, res) => {
   const { client, to, name } = req.body;
