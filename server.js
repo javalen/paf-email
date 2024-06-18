@@ -105,6 +105,44 @@ const verificationSuccess = (name, client) => {
 `;
 };
 
+const addUserToFacility = (
+  name,
+  client,
+  role,
+  addedBy,
+  facility,
+  verificationLink
+) => {
+  return `<div class="flex w-full flex-col gap-1 juice:empty:hidden juice:first:pt-[3px]">
+      <div class="markdown prose w-full break-words dark:prose-invert light">
+          <p><strong>Subject: You've been added as a ${role} to ${facility} by ${addedBy} from ${client}</strong></p>
+          <hr />
+          <p>Hi ${name},</p>
+          <p>You've been added as a ${role} to ${facility} by ${addedBy} from ${client}</p>
+          <p>We're thrilled to have you as part of the PredictiveAF community. Your journey into the world of predictive analytics starts now, and we’re here to help you every step of the way.</p>
+          <p>If you have any questions or need assistance, our support team is just an email away at [<a rel="noreferrer">support@predictiveaf.com</a>].</p>
+          <h3>What’s Next?</h3>
+          
+          <h3>Verify Your Email</h3>
+          <p>To ensure the security of your account, please verify your email by clicking the button below:</p>
+          <a href="${verificationLink}" style="display: inline-block; padding: 10px 20px; font-size: 16px; color: #fff; background-color: #007bff; text-decoration: none; border-radius: 5px;">Verify Email</a>
+          <p>Thank you for choosing PredictiveAF. We look forward to seeing you unlock the full potential of predictive analytics.</p>
+          <p>Best regards,</p>
+          <p>The PredictiveAF Team</p>
+          <hr />
+          <p><strong>Follow us on social media:</strong></p>
+          <ul>
+              <li><a rel="noreferrer" href="#">Facebook</a></li>
+              <li><a rel="noreferrer" href="#">Twitter</a></li>
+              <li><a rel="noreferrer" href="#">LinkedIn</a></li>
+          </ul>
+          <p><strong>Contact Us:</strong> PredictiveAF Inc. [Address Line 1] [Address Line 2] [<a rel="noreferrer">support@predictiveaf.com</a>]</p>
+          <hr />
+      </div>
+  </div>
+  `;
+};
+
 app.post("/send-welcome-email", (req, res) => {
   const { client, to, subject, name } = req.body;
   const verificationLink = `https://paf-email.onrender.com/verify-email?token=${to}`;
@@ -132,6 +170,15 @@ app.get("/verify-email", async function (req, res) {
   res.status(200).send(verificationSuccess(user.name, client.name));
 });
 
+app.get("/accept-role", async function (req, res) {
+  const { token } = req.query;
+  console.log("Token " + token);
+  //const { client, user } = await verifyUserAndClient(token);
+  //sendVerificaitonSuccessEmail(token, user.name, client.name);
+
+  res.status(200).send(verificationSuccess(user.name, client.name));
+});
+
 app.post("/send-verify-success", (req, res) => {
   const { client, to, name } = req.body;
   const mailOptions = {
@@ -149,6 +196,30 @@ app.post("/send-verify-success", (req, res) => {
   });
 });
 
+app.post("/send-new-user-email", (req, res) => {
+  const { client, to, name, addedBy, role, facility, newUserId } = req.body;
+  const verificationLink = `https://paf-email.onrender.com/accept-role?token=${newUserId}`;
+  const mailOptions = {
+    from: "support@predictiveaf.com",
+    to: to,
+    subject: "Welcome to PredictiveAF!",
+    html: addUserToFacility(
+      name,
+      client,
+      role,
+      addedBy,
+      facility,
+      verificationLink
+    ),
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      return res.status(500).send(error.toString());
+    }
+    res.status(200).send("Email sent: " + info.response);
+  });
+});
 const sendVerificaitonSuccessEmail = (to, name, client) => {
   console.log("sendVerificaitonSuccessEmail");
   axios
@@ -166,6 +237,7 @@ const sendVerificaitonSuccessEmail = (to, name, client) => {
       console.error(error);
     });
 };
+
 const verifyClient = async (id) => {
   try {
     console.log("Updating client");
@@ -208,6 +280,7 @@ const verifyUserAndClient = async (email) => {
 };
 
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
