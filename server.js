@@ -4,11 +4,12 @@ const nodemailer = require("nodemailer");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const PocketBase = require("pocketbase/cjs");
+require("dotenv").config();
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
-const pb = new PocketBase("https://predictiveaf-dev.fly.dev/");
+const pb = new PocketBase(process.env.PB_HOST);
 // Configure the email transporter
 const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
@@ -342,5 +343,7 @@ const verifyUserAndClient = async (email) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(
+    `Server is running on port ${PORT} host is ${process.env.PB_HOST}`
+  );
 });

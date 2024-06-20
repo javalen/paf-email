@@ -13,9 +13,12 @@
     "axios": "^1.7.2",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
-    "dot-env": "^0.0.1",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "nodemailer": "^6.9.13",
     "pocketbase": "^0.21.3"
+  },
+  "devDependencies": {
+    "dot-env": "^0.0.1"
   }
 }
