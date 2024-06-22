@@ -333,7 +333,7 @@ app.post("/send-verify-success", (req, res) => {
 // Called when a new user is added to a facility
 app.post("/send-new-user-email", (req, res) => {
   const { client, to, name, addedBy, role, facility, newUserId } = req.body;
-  const verificationLink = `${process.env.PAF_PANEL_HOST}/cpw/{newUserId}`;
+  const verificationLink = `${process.env.PAF_PANEL_HOST}/cpw/${newUserId}`;
   const mailOptions = {
     from: "support@predictiveaf.com",
     to: to,
