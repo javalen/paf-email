@@ -286,14 +286,6 @@ app.get("/verify-email", async function (req, res) {
   res.status(200).send(verificationSuccess(user.name, client.name));
 });
 
-app.get("/changepw", async function (req, res) {
-  const { token } = req.query;
-  console.log("Token " + token);
-  const { name, facility } = await acceptRoleInFacility(token);
-
-  res.status(200).send(verificationAcceptRole(name, facility));
-});
-
 app.get("/accept-role", async function (req, res) {
   const { token } = req.query;
   console.log("Token " + token);
@@ -338,9 +330,10 @@ app.post("/send-verify-success", (req, res) => {
   });
 });
 
+// Called when a new user is added to a facility
 app.post("/send-new-user-email", (req, res) => {
   const { client, to, name, addedBy, role, facility, newUserId } = req.body;
-  const verificationLink = `${process.env.PAF_MAIL_HOST}/accept-role?token=${newUserId}`;
+  const verificationLink = `${process.env.PAF_PANEL_HOST}/changepw?id=${newUserId}`;
   const mailOptions = {
     from: "support@predictiveaf.com",
     to: to,
