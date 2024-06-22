@@ -106,6 +106,77 @@ const verificationSuccess = (name, client) => {
 `;
 };
 
+const changePassword = (name) => {
+  `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Change Password</title>
+      <style>
+          body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              background-color: #f0f0f0;
+          }
+          .form-container {
+              background-color: white;
+              padding: 20px;
+              border-radius: 8px;
+              box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+          }
+          .form-container h2 {
+              margin-bottom: 20px;
+          }
+          .form-container label {
+              display: block;
+              margin-bottom: 8px;
+          }
+          .form-container input[type="password"],
+          .form-container input[type="submit"] {
+              width: 100%;
+              padding: 10px;
+              margin-bottom: 15px;
+              border: 1px solid #ccc;
+              border-radius: 4px;
+          }
+          .form-container input[type="submit"] {
+              background-color: #007BFF;
+              color: white;
+              cursor: pointer;
+              transition: background-color 0.3s;
+          }
+          .form-container input[type="submit"]:hover {
+              background-color: #0056b3;
+          }
+      </style>
+  </head>
+  <body>
+      <div class="form-container">
+          <h2>Change Password</h2>
+          <form action="${process.env.PAF_MAIL_HOST}/changepw" method="POST">
+              <label for="current-password">Current Password:</label>
+              <input type="password" id="current-password" name="current_password" required>
+              
+              <label for="new-password">New Password:</label>
+              <input type="password" id="new-password" name="new_password" required>
+              
+              <label for="confirm-password">Confirm New Password:</label>
+              <input type="password" id="confirm-password" name="confirm_password" required>
+              
+              <input type="submit" value="Change Password">
+          </form>
+      </div>
+  </body>
+  </html>
+  `;
+};
+
 const verificationAcceptRole = (name, facility) => {
   return `<div class="flex w-full flex-col gap-1 juice:empty:hidden juice:first:pt-[3px]">
       <div class="markdown prose w-full break-words dark:prose-invert light">
@@ -186,9 +257,10 @@ const addUserToFacility = (
   `;
 };
 
+// This is called when a new client is created
 app.post("/send-welcome-email", (req, res) => {
   const { client, to, subject, name } = req.body;
-  const verificationLink = `https://paf-email.onrender.com/verify-email?token=${to}`;
+  const verificationLink = `${process.env.PAF_MAIL_HOST}/verify-email?token=${to}`;
   const mailOptions = {
     from: "support@predictiveaf.com",
     to: to,
@@ -204,6 +276,7 @@ app.post("/send-welcome-email", (req, res) => {
   });
 });
 
+// This is called once the user has verified the new client
 app.get("/verify-email", async function (req, res) {
   const { token } = req.query;
   console.log("Token " + token);
@@ -211,6 +284,14 @@ app.get("/verify-email", async function (req, res) {
   sendVerificaitonSuccessEmail(token, user.name, client.name);
 
   res.status(200).send(verificationSuccess(user.name, client.name));
+});
+
+app.get("/changepw", async function (req, res) {
+  const { token } = req.query;
+  console.log("Token " + token);
+  const { name, facility } = await acceptRoleInFacility(token);
+
+  res.status(200).send(verificationAcceptRole(name, facility));
 });
 
 app.get("/accept-role", async function (req, res) {
@@ -259,7 +340,7 @@ app.post("/send-verify-success", (req, res) => {
 
 app.post("/send-new-user-email", (req, res) => {
   const { client, to, name, addedBy, role, facility, newUserId } = req.body;
-  const verificationLink = `https://paf-email.onrender.com/accept-role?token=${newUserId}`;
+  const verificationLink = `${process.env.PAF_MAIL_HOST}/accept-role?token=${newUserId}`;
   const mailOptions = {
     from: "support@predictiveaf.com",
     to: to,
