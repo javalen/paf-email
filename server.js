@@ -294,7 +294,7 @@ const adminVerificationSuccess = (name) => {
         <p><strong>Subject: Thank You for Verifying Your Email.</strong></p>
         <hr />
         <p>Hi ${name},</p>
-        <p>Thank you for creating your account and verifying your email with PredictiveAF!</p>
+        <p>Thank you for accepting your Admin role and verifying your email with PredictiveAF!</p>
         <p>
             We’re delighted to officially welcome you to our community. By verifying your email, you’ve unlocked the full potential of our predictive analytics platform. Get ready to transform your data into actionable insights and make
             smarter decisions.
