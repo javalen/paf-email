@@ -260,7 +260,7 @@ const addUserToFacility = (
 const addAdminToClient = (client, name, addedBy, verificationLink) => {
   return `<div class="flex w-full flex-col gap-1 juice:empty:hidden juice:first:pt-[3px]">
       <div class="markdown prose w-full break-words dark:prose-invert light">
-          <p><strong>Subject: You've been added as a Administrator to ${client} by ${addedBy}.</strong></p>
+          <p><strong>Subject: You've been added as a Administrator to a PAF Client.</strong></p>
           <hr />
           <p>Hi ${name},</p>
           <p>You've been added as a Client Rep to ${client} by ${addedBy}.</p>
