@@ -514,6 +514,24 @@ app.post("/send-new-user-email", (req, res) => {
   });
 });
 
+app.post("/send-new-admin-email", (req, res) => {
+  const { client, to, name, addedBy, newUserId } = req.body;
+  const verificationLink = `${process.env.PAF_PANEL_HOST}/cpw/${newUserId}`;
+  const mailOptions = {
+    from: "support@predictiveaf.com",
+    to: to,
+    subject: "Welcome to PredictiveAF!",
+    html: addAdminToClient(client, name, addedBy, verificationLink),
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      return res.status(500).send(error.toString());
+    }
+    res.status(200).send("Email sent: " + info.response);
+  });
+});
+
 const sendVerificaitonSuccessEmail = (to, name, client) => {
   console.log("sendVerificaitonSuccessEmail");
   axios
