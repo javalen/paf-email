@@ -329,6 +329,7 @@ const adminVerificationSuccess = (name) => {
 </div>
 `;
 };
+
 const sendAdminVerificaitonSuccessEmail = (to, name) => {
   console.log("sendVerificaitonSuccessEmail");
   axios
@@ -356,7 +357,7 @@ app.get("/admin", async function (req, res) {
   res.status(200).send(adminVerificationSuccess(user.name));
 });
 
-app.get("/send-admin-email", async function (req, res) {
+app.post("/send-admin-email", async function (req, res) {
   const { client, to, subject, addedBy, name } = req.body;
   const verificationLink = `${process.env.PAF_MAIL_HOST}/admin?token=${to}`;
   const mailOptions = {
