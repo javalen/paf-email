@@ -178,44 +178,44 @@ const changePassword = (name) => {
 };
 
 const verificationAcceptRole = (name, facility) => {
-  return `<div class="flex w-full flex-col gap-1 juice:empty:hidden juice:first:pt-[3px]">
-      <div class="markdown prose w-full break-words dark:prose-invert light">
-          <p><strong>Subject: Thank You for Verifying Your Email ${name}</strong></p>
-          <hr />
-          <p>Hi ${name},</p>
-          <p>Thank you for accepting role in ${facility}, your have successfully registered your account with PredictiveAF!</p>
-          <p>
-              We’re delighted to officially welcome you to our community. By verifying your email, you’ve unlocked the full potential of our predictive analytics platform. Get ready to transform your data into actionable insights and make
-              smarter decisions.
-          </p>
-          <h3>What’s Next?</h3>
-          <ol>
-              <li><strong>Explore Our Features:</strong> Dive into our suite of tools and discover how PredictiveAF can help you predict trends and optimize outcomes.</li>
-              <li><strong>Personalize Your Experience:</strong> Adjust your settings to receive the most relevant data and predictions tailored to your needs.</li>
-              <li><strong>Join the Community:</strong> Connect with other users, share insights, and learn from experts in our community forum.</li>
-          </ol>
-          <h3>Get Started</h3>
-          <p>To help you get started, we’ve prepared some resources:</p>
-          <ul>
-              <li><strong>Quick Start Guide:</strong> [Link to guide]</li>
-              <li><strong>Video Tutorials:</strong> [Link to tutorials]</li>
-              <li><strong>Support Center:</strong> [Link to support]</li>
-          </ul>
-          <p>If you have any questions or need assistance, our support team is here for you. Feel free to reach out to us anytime at [<a rel="noreferrer">support@predictiveaf.com</a>].</p>
-          <p>Thank you once again for choosing PredictiveAF. We’re excited to see how you’ll leverage our tools to drive success.</p>
-          <p>Best regards,</p>
-          <p>The PredictiveAF Team</p>
-          <hr />
-          <p><strong>Follow us on social media:</strong></p>
-          <ul>
-              <li><a rel="noreferrer" href="#">Facebook</a></li>
-              <li><a rel="noreferrer" href="#">Twitter</a></li>
-              <li><a rel="noreferrer" href="#">LinkedIn</a></li>
-          </ul>
-          <p><strong>Contact Us:</strong> PredictiveAF Inc. [Address Line 1] [Address Line 2] [<a rel="noreferrer">support@predictiveaf.com</a>]</p>
-          <hr />
-      </div>
+  return `<div class="flex flex-col w-full gap-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+  <div class="markdown prose dark:prose-invert w-full break-words">
+    <p class="text-2xl font-bold text-gray-800 dark:text-gray-200">Subject: Thank You for Verifying Your Email ${name}</p>
+    <hr class="my-4 border-t border-gray-200 dark:border-gray-600" />
+    <p class="text-lg">Hi ${name},</p>
+    <p>Thank you for accepting the role in ${facility}. You have successfully registered your account with PredictiveAF!</p>
+    <p>
+      We’re delighted to officially welcome you to our community. By verifying your email, you’ve unlocked the full potential of our predictive analytics platform. Get ready to transform your data into actionable insights and make
+      smarter decisions.
+    </p>
+    <h3 class="text-xl font-semibold mt-6">What’s Next?</h3>
+    <ol class="list-decimal list-inside pl-4 mt-2 space-y-2">
+      <li><strong>Explore Our Features:</strong> Dive into our suite of tools and discover how PredictiveAF can help you predict trends and optimize outcomes.</li>
+      <li><strong>Personalize Your Experience:</strong> Adjust your settings to receive the most relevant data and predictions tailored to your needs.</li>
+      <li><strong>Join the Community:</strong> Connect with other users, share insights, and learn from experts in our community forum.</li>
+    </ol>
+    <h3 class="text-xl font-semibold mt-6">Get Started</h3>
+    <p>To help you get started, we’ve prepared some resources:</p>
+    <ul class="list-disc list-inside pl-4 mt-2 space-y-2">
+      <li><strong>Quick Start Guide:</strong> [Link to guide]</li>
+      <li><strong>Video Tutorials:</strong> [Link to tutorials]</li>
+      <li><strong>Support Center:</strong> [Link to support]</li>
+    </ul>
+    <p>If you have any questions or need assistance, our support team is here for you. Feel free to reach out to us anytime at <a href="mailto:support@predictiveaf.com" class="text-blue-600 dark:text-blue-400">support@predictiveaf.com</a>.</p>
+    <p>Thank you once again for choosing PredictiveAF. We’re excited to see how you’ll leverage our tools to drive success.</p>
+    <p>Best regards,</p>
+    <p>The PredictiveAF Team</p>
+    <hr class="my-4 border-t border-gray-200 dark:border-gray-600" />
+    <p><strong>Follow us on social media:</strong></p>
+    <ul class="flex space-x-4">
+      <li><a href="#" class="text-blue-600 dark:text-blue-400">Facebook</a></li>
+      <li><a href="#" class="text-blue-600 dark:text-blue-400">Twitter</a></li>
+      <li><a href="#" class="text-blue-600 dark:text-blue-400">LinkedIn</a></li>
+    </ul>
+    <p class="mt-4"><strong>Contact Us:</strong> PredictiveAF Inc. [Address Line 1] [Address Line 2] <a href="mailto:support@predictiveaf.com" class="text-blue-600 dark:text-blue-400">support@predictiveaf.com</a></p>
+    <hr class="my-4 border-t border-gray-200 dark:border-gray-600" />
   </div>
+</div>
   `;
 };
 
