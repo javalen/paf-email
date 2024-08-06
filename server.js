@@ -64,7 +64,7 @@ const welcomeEmailTemplate = (client, name, verificationLink) => `
 </div>
 `;
 
-const verificationSuccess = (name, client) => {
+const clientVerificationSuccess = (name, client) => {
   return `<div class="flex w-full flex-col gap-4 p-6 bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
     <div class="prose prose-sm sm:prose-base md:prose-lg mx-auto">
         <p><strong>Subject: Thank You for Verifying Your Email for ${client}</strong></p>
@@ -77,6 +77,7 @@ const verificationSuccess = (name, client) => {
         </p>
         <h3 class="text-lg font-semibold">What’s Next?</h3>
         <ol class="list-decimal list-inside space-y-2">
+           <li><strong>Access the PAF Control panel:</strong> Use your application login to access the control panel <a href="${process.env.PAF_PANEL_HOST}"> here.</a></li>
             <li><strong>Explore Our Features:</strong> Dive into our suite of tools and discover how PredictiveAF can help you predict trends and optimize outcomes.</li>
             <li><strong>Personalize Your Experience:</strong> Adjust your settings to receive the most relevant data and predictions tailored to your needs.</li>
             <li><strong>Join the Community:</strong> Connect with other users, share insights, and learn from experts in our community forum.</li>
@@ -333,7 +334,7 @@ const adminVerificationSuccess = (name) => {
 const sendAdminVerificaitonSuccessEmail = (to, name) => {
   console.log("sendVerificaitonSuccessEmail");
   axios
-    .post("http://127.0.0.1:5000/send-admin-verify-success", {
+    .post(`${process.env.PAF_MAIL_HOST}/send-admin-verify-success`, {
       to: to,
       name: name,
     })
@@ -449,7 +450,7 @@ app.get("/verify-email", async function (req, res) {
   const { client, user } = await verifyUserAndClient(token);
   sendVerificaitonSuccessEmail(token, user.name, client.name);
 
-  res.status(200).send(verificationSuccess(user.name, client.name));
+  res.status(200).send(clientVerificationSuccess(user.name, client.name));
 });
 
 const acceptRoleInFacility = async (id) => {
@@ -477,7 +478,7 @@ app.post("/send-verify-success", (req, res) => {
     from: "support@predictiveaf.com",
     to: to,
     subject: "PAF Verification Success! ",
-    html: verificationSuccess(name, client),
+    html: clientVerificationSuccess(name, client),
   };
 
   transporter.sendMail(mailOptions, (error, info) => {
@@ -535,7 +536,7 @@ app.post("/send-new-admin-email", (req, res) => {
 const sendVerificaitonSuccessEmail = (to, name, client) => {
   console.log("sendVerificaitonSuccessEmail");
   axios
-    .post("http://127.0.0.1:5000/send-verify-success", {
+    .post(`${process.env.PAF_MAIL_HOST}/send-verify-success`, {
       to: to,
       name: name,
       client: client,
