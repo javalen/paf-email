@@ -54,7 +54,7 @@ const welcomeEmailTemplate = (client, name, verificationLink) => `
         <hr />
         <p><strong>Follow us on social media:</strong></p>
         <ul>
-            <li><a rel="noreferrer" href="#">Facebook</a></li>
+            <li><a rel="noreferrer" href="${process.env.PAF_FB_PAGE}">Facebook</a></li>
             <li><a rel="noreferrer" href="#">Twitter</a></li>
             <li><a rel="noreferrer" href="#">LinkedIn</a></li>
         </ul>
@@ -96,7 +96,7 @@ const clientVerificationSuccess = (name, client) => {
         <hr class="my-4 border-gray-300 dark:border-gray-700" />
         <p><strong>Follow us on social media:</strong></p>
         <ul class="list-disc list-inside space-y-2">
-            <li><a href="#" class="text-blue-600 dark:text-blue-400">Facebook</a></li>
+            <li><a href="${process.env.PAF_FB_PAGE}" class="text-blue-600 dark:text-blue-400">Facebook</a></li>
             <li><a href="#" class="text-blue-600 dark:text-blue-400">Twitter</a></li>
             <li><a href="#" class="text-blue-600 dark:text-blue-400">LinkedIn</a></li>
         </ul>
@@ -209,8 +209,7 @@ const verificationAcceptRole = (name, facility) => {
     <hr class="my-4 border-t border-gray-200 dark:border-gray-600" />
     <p><strong>Follow us on social media:</strong></p>
     <ul class="flex space-x-4">
-      <li><a href="#" class="text-blue-600 dark:text-blue-400">Facebook</a></li>
-      <li><a href="#" class="text-blue-600 dark:text-blue-400">Twitter</a></li>
+      <li><a href="${process.env.PAF_FB_PAGE}" class="text-blue-600 dark:text-blue-400">Facebook</a></li>
       <li><a href="#" class="text-blue-600 dark:text-blue-400">LinkedIn</a></li>
     </ul>
     <p class="mt-4"><strong>Contact Us:</strong> PredictiveAF Inc. [Address Line 1] [Address Line 2] <a href="mailto:support@predictiveaf.com" class="text-blue-600 dark:text-blue-400">support@predictiveaf.com</a></p>
@@ -247,7 +246,7 @@ const addUserToFacility = (
           <hr />
           <p><strong>Follow us on social media:</strong></p>
           <ul>
-              <li><a rel="noreferrer" href="#">Facebook</a></li>
+              <li><a rel="noreferrer" href="${process.env.PAF_FB_PAGE}">Facebook</a></li>
               <li><a rel="noreferrer" href="#">Twitter</a></li>
               <li><a rel="noreferrer" href="#">LinkedIn</a></li>
           </ul>
@@ -278,7 +277,7 @@ const addAdminToClient = (client, name, addedBy, verificationLink) => {
           <hr />
           <p><strong>Follow us on social media:</strong></p>
           <ul>
-              <li><a rel="noreferrer" href="#">Facebook</a></li>
+              <li><a rel="noreferrer" href="${process.env.PAF_FB_PAGE}">Facebook</a></li>
               <li><a rel="noreferrer" href="#">Twitter</a></li>
               <li><a rel="noreferrer" href="#">LinkedIn</a></li>
           </ul>
@@ -320,7 +319,7 @@ const adminVerificationSuccess = (name) => {
         <hr />
         <p><strong>Follow us on social media:</strong></p>
         <ul>
-            <li><a rel="noreferrer" href="#">Facebook</a></li>
+            <li><a rel="noreferrer" href="${process.env.PAF_FB_PAGE}">Facebook</a></li>
             <li><a rel="noreferrer" href="#">Twitter</a></li>
             <li><a rel="noreferrer" href="#">LinkedIn</a></li>
         </ul>
