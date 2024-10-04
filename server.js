@@ -10,6 +10,7 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 const pb = new PocketBase(process.env.PB_HOST);
+pb.autoCancellation(false);
 // Configure the email transporter
 const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
@@ -67,8 +68,6 @@ const welcomeEmailTemplate = (client, name, verificationLink) => `
 const clientVerificationSuccess = (name, client) => {
   return `<div class="flex w-full flex-col gap-4 p-6 bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
     <div class="prose prose-sm sm:prose-base md:prose-lg mx-auto">
-        <p><strong>Subject: Thank You for Verifying Your Email for ${client}</strong></p>
-        <hr class="my-4 border-gray-300 dark:border-gray-700" />
         <p>Hi ${name},</p>
         <p>Thank you for creating your account and verifying your email with PredictiveAF!</p>
         <p>
