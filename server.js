@@ -435,8 +435,10 @@ app.post("/send-welcome-email", (req, res) => {
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
+      console.log("Error sending welcome email to", to, client);
       return res.status(500).send(error.toString());
     }
+    console.log("Successful sending welcome email to", to, client);
     res.status(200).send("Email sent: " + info.response);
   });
 });
