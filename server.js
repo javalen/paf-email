@@ -45,11 +45,11 @@ const transporter = nodemailer.createTransport({
 
 // Email template
 const welcomeEmailTemplate = (client, name, verificationLink) => `
-<div class="flex w-full flex-col gap-1 juice:empty:hidden juice:first:pt-[3px]">
-    <div class="markdown prose w-full break-words dark:prose-invert light">
-        <hr />
-        <p><strong>Subject: Welcome to PredictiveAF, ${client}!</strong></p>
-        <hr />
+<html><head></head><body><div style="border: 3px solid;">
+    <div style="padding: 25px;font: 15px Arial, sans-serif;">
+        <hr>
+        <p style="text-align: center;"><strong>Welcome to PredictiveAF, ${client}!</strong></p>
+        <hr>
         <p>Hi ${name},</p>
         <p>Welcome aboard!</p>
         <p>We're thrilled to have you as part of the PredictiveAF community. Your journey into the world of predictive analytics starts now, and we’re here to help you every step of the way.</p>
@@ -60,20 +60,20 @@ const welcomeEmailTemplate = (client, name, verificationLink) => `
         <p>Thank you for choosing PredictiveAF. We look forward to seeing you unlock the full potential of predictive analytics.</p>
         <p>Best regards,</p>
         <p>The PredictiveAF Team</p>
-        <hr />
+        <hr>
         <p><strong>Follow us on social media:</strong></p>
         <ul>
             <li><a rel="noreferrer" href="${process.env.PAF_FB_PAGE}">Facebook</a></li>
             
         </ul>
         <p><strong>Contact Us:</strong> PredictiveAF Inc. <a rel="noreferrer">support@predictiveaf.com</a></p>
-        <hr />
+        <hr>
     </div>
-</div>
+</div></body></html>
 `;
 
 const clientVerificationSuccess = (name, client) => {
-  return `<div class="flex w-full flex-col gap-4 p-6 bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+  return `<div style="padding: 25px;font: 15px Arial, sans-serif;">
     <div class="prose prose-sm sm:prose-base md:prose-lg mx-auto">
         <p>Hi ${name},</p>
         <p>Thank you for creating your account and verifying your email with PredictiveAF!</p>
@@ -91,9 +91,9 @@ const clientVerificationSuccess = (name, client) => {
         <h3 class="text-lg font-semibold">Get Started</h3>
         <p>To help you get started, we’ve prepared some resources:</p>
         <ul class="list-disc list-inside space-y-2">
-            <li><strong>Quick Start Guide:</strong> [Link to guide]</li>
-            <li><strong>Video Tutorials:</strong> [Link to tutorials]</li>
-            <li><strong>Support Center:</strong> [Link to support]</li>
+            <li><strong><a href="https://predictiveaf.com/quickstart">Quick Start Guide</a></strong> </li>
+            <li><strong><a href="https://www.youtube.com/@PredictiveAF">Video Tutorials</a></strong></li>
+            <li><strong><a href="https://predictiveaf.com/support">Support Center</a></strong></li>
         </ul>
         <p>If you have any questions or need assistance, our support team is here for you. Feel free to reach out to us anytime at <a href="mailto:support@predictiveaf.com" class="text-blue-600 dark:text-blue-400">support@predictiveaf.com</a>.</p>
         <p>Thank you once again for choosing PredictiveAF. We’re excited to see how you’ll leverage our tools to drive success.</p>
@@ -103,8 +103,8 @@ const clientVerificationSuccess = (name, client) => {
         <p><strong>Follow us on social media:</strong></p>
         <ul class="list-disc list-inside space-y-2">
             <li><a href="${process.env.PAF_FB_PAGE}" class="text-blue-600 dark:text-blue-400">Facebook</a></li>
-            <li><a href="#" class="text-blue-600 dark:text-blue-400">Twitter</a></li>
-            <li><a href="#" class="text-blue-600 dark:text-blue-400">LinkedIn</a></li>
+            <!-- <li><a href="#" class="text-blue-600 dark:text-blue-400">Twitter</a></li>
+            <li><a href="#" class="text-blue-600 dark:text-blue-400">LinkedIn</a></li> -->
         </ul>
         <p><strong>Contact Us:</strong> PredictiveAF Inc. [Address Line 1] [Address Line 2] <a href="mailto:support@predictiveaf.com" class="text-blue-600 dark:text-blue-400">support@predictiveaf.com</a></p>
         <hr class="my-4 border-gray-300 dark:border-gray-700" />
