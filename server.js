@@ -106,7 +106,7 @@ const clientVerificationSuccess = (name, client) => {
             <!-- <li><a href="#" class="text-blue-600 dark:text-blue-400">Twitter</a></li>
             <li><a href="#" class="text-blue-600 dark:text-blue-400">LinkedIn</a></li> -->
         </ul>
-        <p><strong>Contact Us:</strong> PredictiveAF Inc. [Address Line 1] [Address Line 2] <a href="mailto:support@predictiveaf.com" class="text-blue-600 dark:text-blue-400">support@predictiveaf.com</a></p>
+        <p><strong>Contact Us:</strong> PredictiveAF Inc. <a href="mailto:support@predictiveaf.com" class="text-blue-600 dark:text-blue-400">support@predictiveaf.com</a></p>
         <hr class="my-4 border-gray-300 dark:border-gray-700" />
     </div>
 </div>
