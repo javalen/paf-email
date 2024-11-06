@@ -53,20 +53,7 @@ const welcomeEmailTemplate = (client, name, verificationLink) => `
         <p>Hi ${name},</p>
         <p>Welcome aboard!</p>
         <p>We're thrilled to have you as part of the PredictiveAF community. Your journey into the world of predictive analytics starts now, and we’re here to help you every step of the way.</p>
-        <h3>What’s Next?</h3>
-        <ol>
-            <li><strong>Explore Our Features:</strong> Dive into the app and discover powerful tools designed to give you accurate and actionable insights.</li>
-            <li><strong>Personalize Your Experience:</strong> Customize your preferences to get the most relevant data and predictions tailored to your needs.</li>
-            <li><strong>Join the Community:</strong> Connect with other users, share your insights, and learn from experts in our community forum.</li>
-        </ol>
-        <h3>Get Started</h3>
-        <p>To help you get started, we’ve prepared some resources:</p>
-        <ul>
-            <li><strong>Quick Start Guide:</strong> [Link to guide]</li>
-            <li><strong>Video Tutorials:</strong> [Link to tutorials]</li>
-            <li><strong>Support Center:</strong> [Link to support]</li>
-        </ul>
-        <p>If you have any questions or need assistance, our support team is just an email away at [<a rel="noreferrer">support@predictiveaf.com</a>].</p>
+        
         <h3>Verify Your Email</h3>
         <p>To ensure the security of your account, please verify your email by clicking the button below:</p>
         <a href="${verificationLink}" style="display: inline-block; padding: 10px 20px; font-size: 16px; color: #fff; background-color: #007bff; text-decoration: none; border-radius: 5px;">Verify Email</a>
@@ -77,10 +64,9 @@ const welcomeEmailTemplate = (client, name, verificationLink) => `
         <p><strong>Follow us on social media:</strong></p>
         <ul>
             <li><a rel="noreferrer" href="${process.env.PAF_FB_PAGE}">Facebook</a></li>
-            <li><a rel="noreferrer" href="#">Twitter</a></li>
-            <li><a rel="noreferrer" href="#">LinkedIn</a></li>
+            
         </ul>
-        <p><strong>Contact Us:</strong> PredictiveAF Inc. [Address Line 1] [Address Line 2] [<a rel="noreferrer">support@predictiveaf.com</a>]</p>
+        <p><strong>Contact Us:</strong> PredictiveAF Inc. <a rel="noreferrer">support@predictiveaf.com</a></p>
         <hr />
     </div>
 </div>
