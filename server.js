@@ -11,14 +11,35 @@ app.use(bodyParser.json());
 app.use(cors());
 const pb = new PocketBase(process.env.PB_HOST);
 pb.autoCancellation(false);
-// Configure the email transporter
+//Configure the email transporter - original, slow but works
+// const transporter = nodemailer.createTransport({
+//   host: "smtp-relay.brevo.com",
+//   port: 587,
+//   secure: false, // true for 465, false for other ports
+//   auth: {
+//     user: "lenflour@gmail.com", // your Brevo email
+//     pass: "Xzn58PRpULQD02Bh", // your Brevo SMTP password
+//   },
+// });
+
+//Configure the email transporter
+// const transporter = nodemailer.createTransport({
+//   host: "smtp-relay.brevo.com",
+//   port: 587,
+//   secure: false, // true for 465, false for other ports
+//   auth: {
+//     user: "7ed467001@smtp-brevo.com", // your Brevo email
+//     pass: "yXCkpJGw0Dsb7fQx", // your Brevo SMTP password
+//   },
+// });
+
 const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false, // true for 465, false for other ports
+  host: "s1099.usc1.mysecurecloudhost.com",
+  port: 465,
+  secure: true, // true for 465, false for other ports
   auth: {
-    user: "lenflour@gmail.com", // your Brevo email
-    pass: "Xzn58PRpULQD02Bh", // your Brevo SMTP password
+    user: "support@predictiveaf.com",
+    pass: "Th!sism3",
   },
 });
 
@@ -435,7 +456,7 @@ app.post("/send-welcome-email", (req, res) => {
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
-      console.log("Error sending welcome email to", to, client);
+      console.log("Error sending welcome email to", to, client, error);
       return res.status(500).send(error.toString());
     }
     console.log("Successful sending welcome email to", to, client);
