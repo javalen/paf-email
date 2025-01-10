@@ -498,7 +498,7 @@ app.post("/send-verify-success", (req, res) => {
 
 // Called when a new user is added to a facility
 app.post("/send-new-user-email", (req, res) => {
-  const { client, to, name, addedBy, role, facility, newUserId } = req.body;
+  const { to, facility, name, client, role, addedBy, newUserId } = req.body;
   const verificationLink = `${process.env.PAF_PANEL_HOST}/cpw/${newUserId}`;
   const mailOptions = {
     from: "support@predictiveaf.com",
@@ -513,11 +513,13 @@ app.post("/send-new-user-email", (req, res) => {
       verificationLink
     ),
   };
+  console.log(`Sending new user email to ${to}`);
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
       return res.status(500).send(error.toString());
     }
+    onsole.log(`new user email to ${to} successful`);
     res.status(200).send("Email sent: " + info.response);
   });
 });
