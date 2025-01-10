@@ -519,7 +519,7 @@ app.post("/send-new-user-email", (req, res) => {
     if (error) {
       return res.status(500).send(error.toString());
     }
-    onsole.log(`new user email to ${to} successful`);
+    console.log(`new user email to ${to} successful`);
     res.status(200).send("Email sent: " + info.response);
   });
 });
