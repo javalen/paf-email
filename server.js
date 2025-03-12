@@ -455,6 +455,7 @@ app.get("/verify-email", async function (req, res) {
   const { token, host } = req.query;
   console.log("Token " + token);
   const { client, user } = await verifyUserAndClient(token, host);
+
   sendVerificaitonSuccessEmail(token, user.name, client.name);
 
   res.status(200).send(clientVerificationSuccess(user.name, client.name));
@@ -560,14 +561,14 @@ const sendVerificaitonSuccessEmail = (to, name, client) => {
     });
 };
 
-const verifyClient = async (id) => {
+const verifyClient = async (id, backend) => {
   try {
     console.log("Updating client");
-    const client = await pb
+    const client = await backend
       .collection("client")
       .getFirstListItem(`manager="${id}"`);
     console.log("Got the client", client.name);
-    const record = await pb
+    const record = await backend
       .collection("client")
       .update(client.id, { verified: true });
     console.log("Client verified:", record.verified);
@@ -595,7 +596,7 @@ const verifyUserAndClient = async (email, host) => {
       .collection("personel")
       .update(personel.id, { verified: true });
     console.log("Personel verified", record);
-    const client = await verifyClient(user.id);
+    const client = await verifyClient(user.id, clientpb);
     return { client: client, user: user };
   } catch (error) {
     console.log(`Error verifying User ${error}`);
