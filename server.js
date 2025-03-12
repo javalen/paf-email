@@ -431,8 +431,8 @@ app.get("/accept-role", async function (req, res) {
 
 // This is called when a new client is created
 app.post("/send-welcome-email", (req, res) => {
-  const { client, to, subject, name } = req.body;
-  const verificationLink = `${process.env.PAF_MAIL_HOST}/verify-email?token=${to}`;
+  const { client, to, subject, name, host } = req.body;
+  const verificationLink = `${process.env.PAF_MAIL_HOST}/verify-email?token=${to}&host=${host}`;
   const mailOptions = {
     from: "support@predictiveaf.com",
     to: to,
@@ -452,9 +452,9 @@ app.post("/send-welcome-email", (req, res) => {
 
 // This is called once the user has verified the new client
 app.get("/verify-email", async function (req, res) {
-  const { token } = req.query;
+  const { token, host } = req.query;
   console.log("Token " + token);
-  const { client, user } = await verifyUserAndClient(token);
+  const { client, user } = await verifyUserAndClient(token, host);
   sendVerificaitonSuccessEmail(token, user.name, client.name);
 
   res.status(200).send(clientVerificationSuccess(user.name, client.name));
@@ -578,19 +578,20 @@ const verifyClient = async (id) => {
   }
 };
 
-const verifyUserAndClient = async (email) => {
-  console.log("verifyUserAndClient ", email);
+const verifyUserAndClient = async (email, host) => {
+  console.log("verifyUserAndClient ", email, "host", host);
   try {
-    const user = await pb
+    const clientpb = new PocketBase(host);
+    const user = await clientpb
       .collection("users")
       .getFirstListItem(`email="${email}"`);
 
     console.log("User", user.name);
-    const personel = await pb
+    const personel = await clientpb
       .collection("personel")
       .getFirstListItem(`user="${user.id}"`);
     console.log("Personel", personel.full_name);
-    const record = await pb
+    const record = await clientpb
       .collection("personel")
       .update(personel.id, { verified: true });
     console.log("Personel verified", record);
@@ -599,6 +600,7 @@ const verifyUserAndClient = async (email) => {
   } catch (error) {
     console.log(`Error verifying User ${error}`);
   }
+  clientpb = null;
 };
 
 const PORT = process.env.PORT || 5000;
