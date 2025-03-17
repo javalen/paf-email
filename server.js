@@ -429,7 +429,7 @@ app.get("/accept-role", async function (req, res) {
   res.status(200).send(verificationAcceptRole(name, facility));
 });
 
-// This is called when a new client is created
+// This is called when a new client is created, the host is the pb host for a region
 app.post("/send-welcome-email", (req, res) => {
   const { client, to, subject, name, host } = req.body;
   const verificationLink = `${process.env.PAF_MAIL_HOST}/verify-email?token=${to}&host=${host}`;
@@ -567,7 +567,7 @@ const verifyClient = async (id, backend) => {
     const client = await backend
       .collection("client")
       .getFirstListItem(`manager="${id}"`);
-    console.log("Got the client", client.name);
+
     const record = await backend
       .collection("client")
       .update(client.id, { verified: true });
@@ -587,11 +587,9 @@ const verifyUserAndClient = async (email, host) => {
       .collection("users")
       .getFirstListItem(`email="${email}"`);
 
-    console.log("User", user.name);
     const personel = await clientpb
       .collection("personel")
       .getFirstListItem(`user="${user.id}"`);
-    console.log("Personel", personel.full_name);
     const record = await clientpb
       .collection("personel")
       .update(personel.id, { verified: true });
