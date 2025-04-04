@@ -73,42 +73,78 @@ const welcomeEmailTemplate = (client, name, verificationLink) => `
 `;
 
 const clientVerificationSuccess = (name, client) => {
-  return `<div style="padding: 25px;font: 15px Arial, sans-serif;">
-    <div class="prose prose-sm sm:prose-base md:prose-lg mx-auto">
-        <p>Hi ${name},</p>
-        <p>Thank you for creating your account and verifying your email with PredictiveAF!</p>
-        <p>
-            We’re delighted to officially welcome you to our community. By verifying your email, you’ve unlocked the full potential of our predictive analytics platform. Get ready to transform your data into actionable insights and make
-            smarter decisions.
-        </p>
-        <h3 class="text-lg font-semibold">What’s Next?</h3>
-        <ol class="list-decimal list-inside space-y-2">
-           <li><strong>Access the PAF Control panel:</strong> Use your application login to access the control panel <a href="${process.env.PAF_PANEL_HOST}"> here.</a></li>
-            <li><strong>Explore Our Features:</strong> Dive into our suite of tools and discover how PredictiveAF can help you predict trends and optimize outcomes.</li>
-            <li><strong>Personalize Your Experience:</strong> Adjust your settings to receive the most relevant data and predictions tailored to your needs.</li>
-            <li><strong>Join the Community:</strong> Connect with other users, share insights, and learn from experts in our community forum.</li>
-        </ol>
-        <h3 class="text-lg font-semibold">Get Started</h3>
-        <p>To help you get started, we’ve prepared some resources:</p>
-        <ul class="list-disc list-inside space-y-2">
-            <li><strong><a href="https://predictiveaf.com/quickstart">Quick Start Guide</a></strong> </li>
-            <li><strong><a href="https://www.youtube.com/@PredictiveAF">Video Tutorials</a></strong></li>
-            <li><strong><a href="https://predictiveaf.com/support">Support Center</a></strong></li>
-        </ul>
-        <p>If you have any questions or need assistance, our support team is here for you. Feel free to reach out to us anytime at <a href="mailto:support@predictiveaf.com" class="text-blue-600 dark:text-blue-400">support@predictiveaf.com</a>.</p>
-        <p>Thank you once again for choosing PredictiveAF. We’re excited to see how you’ll leverage our tools to drive success.</p>
-        <p>Best regards,</p>
-        <p>The PredictiveAF Team</p>
-        <hr class="my-4 border-gray-300 dark:border-gray-700" />
-        <p><strong>Follow us on social media:</strong></p>
-        <ul class="list-disc list-inside space-y-2">
-            <li><a href="${process.env.PAF_FB_PAGE}" class="text-blue-600 dark:text-blue-400">Facebook</a></li>
-            <!-- <li><a href="#" class="text-blue-600 dark:text-blue-400">Twitter</a></li>
-            <li><a href="#" class="text-blue-600 dark:text-blue-400">LinkedIn</a></li> -->
-        </ul>
-        <p><strong>Contact Us:</strong> PredictiveAF Inc. <a href="mailto:support@predictiveaf.com" class="text-blue-600 dark:text-blue-400">support@predictiveaf.com</a></p>
-        <hr class="my-4 border-gray-300 dark:border-gray-700" />
-    </div>
+  return `<div style="padding: 25px; font-family: Arial, sans-serif; font-size: 15px; color: #333; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+  <p>Hi ${name},</p>
+
+  <p>
+    Thank you for creating your account and verifying your email with <strong>PredictiveAF</strong>!
+  </p>
+
+  <p>
+    We’re delighted to officially welcome you to our community. By verifying your email, you’ve unlocked the full potential of our predictive analytics platform. Get ready to transform your data into actionable insights and make smarter decisions.
+  </p>
+
+  <h3 style="font-size: 18px; margin-top: 30px; color: #222;">What’s Next?</h3>
+
+  <ol style="padding-left: 20px; margin-top: 10px;">
+    <li style="margin-bottom: 10px;">
+      <strong>Access the PAF Control Panel:</strong>
+      Use your application login to access the control panel
+      <a href="${process.env.PAF_PANEL_HOST}" style="color: #1a73e8; text-decoration: none;">here</a>.
+    </li>
+    <li style="margin-bottom: 10px;">
+      <strong>Explore Our Features:</strong> Dive into our suite of tools and discover how PredictiveAF can help you predict trends and optimize outcomes.
+    </li>
+    <li style="margin-bottom: 10px;">
+      <strong>Personalize Your Experience:</strong> Adjust your settings to receive the most relevant data and predictions tailored to your needs.
+    </li>
+    <li style="margin-bottom: 10px;">
+      <strong>Join the Community:</strong> Connect with other users, share insights, and learn from experts in our community forum.
+    </li>
+  </ol>
+
+  <h3 style="font-size: 18px; margin-top: 30px; color: #222;">Get Started</h3>
+
+  <p>To help you get started, we’ve prepared some resources:</p>
+
+  <ul style="padding-left: 20px;">
+    <li style="margin-bottom: 8px;">
+      <a href="https://predictiveaf.com/quickstart" style="color: #1a73e8; text-decoration: none;"><strong>Quick Start Guide</strong></a>
+    </li>
+    <li style="margin-bottom: 8px;">
+      <a href="https://www.youtube.com/@PredictiveAF" style="color: #1a73e8; text-decoration: none;"><strong>Video Tutorials</strong></a>
+    </li>
+    <li style="margin-bottom: 8px;">
+      <a href="https://predictiveaf.com/support" style="color: #1a73e8; text-decoration: none;"><strong>Support Center</strong></a>
+    </li>
+  </ul>
+
+  <p>
+    If you have any questions or need assistance, our support team is here for you. Feel free to reach out to us anytime at
+    <a href="mailto:support@predictiveaf.com" style="color: #1a73e8; text-decoration: none;">support@predictiveaf.com</a>.
+  </p>
+
+  <p>Thank you once again for choosing PredictiveAF. We’re excited to see how you’ll leverage our tools to drive success.</p>
+
+  <p>Best regards,</p>
+  <p><strong>The PredictiveAF Team</strong></p>
+
+  <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;" />
+
+  <p><strong>Follow us on social media:</strong></p>
+  <ul style="padding-left: 20px;">
+    <li>
+      <a href="${process.env.PAF_FB_PAGE}" style="color: #1a73e8; text-decoration: none;">Facebook</a>
+    </li>
+    <!-- Uncomment and update as needed:
+    <li><a href="#" style="color: #1a73e8;">Twitter</a></li>
+    <li><a href="#" style="color: #1a73e8;">LinkedIn</a></li>
+    -->
+  </ul>
+
+  <p><strong>Contact Us:</strong> PredictiveAF Inc. — <a href="mailto:support@predictiveaf.com" style="color: #1a73e8; text-decoration: none;">support@predictiveaf.com</a></p>
+
+  <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;" />
 </div>
 `;
 };
