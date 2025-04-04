@@ -73,7 +73,10 @@ const welcomeEmailTemplate = (client, name, verificationLink) => `
 `;
 
 const clientVerificationSuccess = (name, client) => {
-  return `<div style="padding: 25px; font-family: Arial, sans-serif; font-size: 15px; color: #333; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+  return `<div style="padding: 25px; font-family: Arial, sans-serif; font-size: 15px; color: #333; max-width: 900px; margin: 0 auto; line-height: 1.6;">
+  <h3 style="font-size: 18px; margin-top: 30px; margin-bottom: 30px; color: #222; text-align: center;">
+  Welcome to PredictiveAF!
+</h3>
   <p>Hi ${name},</p>
 
   <p>
@@ -90,7 +93,7 @@ const clientVerificationSuccess = (name, client) => {
     <li style="margin-bottom: 10px;">
       <strong>Access the PAF Control Panel:</strong>
       Use your application login to access the control panel
-      <a href="${process.env.PAF_PANEL_HOST}" style="color: #1a73e8; text-decoration: none;">here</a>.
+      <a href="${process.env.PAF_PANEL_HOST}" style="color: #1a73e8; text-decoration: none;">here</a>. <strong>Be sure to bookmark it for future reference!</strong>
     </li>
     <li style="margin-bottom: 10px;">
       <strong>Explore Our Features:</strong> Dive into our suite of tools and discover how PredictiveAF can help you predict trends and optimize outcomes.
