@@ -74,7 +74,14 @@ const welcomeEmailTemplate = (client, name, verificationLink) => `
 </div></body></html>
 `;
 
-const tenantTicketTemplate = (manager, tenant, unit, ticketNum, issue) => `
+const tenantTicketTemplate = (
+  manager,
+  tenant,
+  unit,
+  ticketNum,
+  issue,
+  phone
+) => `
 <html><head></head><body><div style="border: 3px solid;">
     <div style="padding: 25px;font: 15px Arial, sans-serif;">
         <hr>
@@ -82,11 +89,15 @@ const tenantTicketTemplate = (manager, tenant, unit, ticketNum, issue) => `
         <hr>
         <p>Hi ${manager},</p>
         <p></p>
-        <p>${tenant} in unit ${unit} has created a ticket number ${ticketNum}</p>
+        <p>${tenant} in unit ${unit} has created a new ticket, the number is ${ticketNum}.</p>
         
-        <h3>Below is a description of the issue:</h3>
-        <p>${issue}</p>
-        <p>Please login to your dashboard to either accept or reject the ticket</p>
+        <h3>Below is the description of the issue provided:</h3>
+        <p>"${issue}"</p>
+        <p></p>
+        <p>They can be reached ar ${phone} if you'd like to call them.</p>
+        <p></p>
+        <p>Please login to your dashboard to either accept or reject the ticket.</p>
+        <p></p>
         <p></p>
         <p>Thank you for choosing PredictiveAF.</p>
         <p>Best regards,</p>
@@ -520,13 +531,14 @@ app.post("/send-welcome-email", (req, res) => {
 });
 
 app.post("/tenant-ticket-email", (req, res) => {
-  const { to, subject, tenant, manager, unit, issue, ticket_num } = req.body;
+  const { to, subject, tenant, manager, unit, issue, ticket_num, phone } =
+    req.body;
 
   const mailOptions = {
     from: "support@predictiveaf.com",
     to: to,
     subject: subject,
-    html: tenantTicketTemplate(manager, tenant, unit, ticket_num, issue),
+    html: tenantTicketTemplate(manager, tenant, unit, ticket_num, issue, phone),
   };
 
   transporter.sendMail(mailOptions, (error, info) => {
