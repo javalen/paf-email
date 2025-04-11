@@ -45,6 +45,23 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+function validateAndFormatPhoneNumber(phone) {
+  // Remove all non-digit characters
+  const digits = phone.replace(/\D/g, "");
+
+  // Check if there are exactly 10 digits
+  if (digits.length !== 10) {
+    return null; // Invalid number
+  }
+
+  // Format to (123) 456-7890
+  const area = digits.slice(0, 3);
+  const mid = digits.slice(3, 6);
+  const last = digits.slice(6, 10);
+
+  return `(${area}) ${mid}-${last}`;
+}
+
 // Email template
 const welcomeEmailTemplate = (client, name, verificationLink) => `
 <html><head></head><body><div style="border: 3px solid;">
@@ -92,7 +109,9 @@ const tenantTicketTemplate = (
         <h3>Below is the description of the issue provided:</h3>
         <p>"${issue}"</p>
         <p></p>
-        <p>They can be reached ar ${phone} if you'd like to call them.</p>
+        <p>They can be reached ar ${validateAndFormatPhoneNumber(
+          phone
+        )} if you'd like to call them.</p>
         <p></p>
         <p>Please login to your dashboard to either accept or reject the ticket.</p>
         <p></p>
@@ -103,7 +122,9 @@ const tenantTicketTemplate = (
         <hr>
         <p><strong>Follow us on social media:</strong></p>
         <ul>
-            <li><a rel="noreferrer" href="${process.env.PAF_FB_PAGE}">Facebook</a></li>
+            <li><a rel="noreferrer" href="${
+              process.env.PAF_FB_PAGE
+            }">Facebook</a></li>
             
         </ul>
         <p><strong>Contact Us:</strong> PredictiveAF Inc. <a rel="noreferrer">support@predictiveaf.com</a></p>
