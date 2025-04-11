@@ -84,9 +84,7 @@ const tenantTicketTemplate = (
 ) => `
 <html><head></head><body><div style="border: 3px solid;">
     <div style="padding: 25px;font: 15px Arial, sans-serif;">
-        <hr>
-        <p style="text-align: center;"><strong>A new Tenant Ticket has been created!</strong></p>
-        <hr>
+        
         <p>Hi ${manager},</p>
         <p></p>
         <p>${tenant} in unit ${unit} has created a new ticket, the number is ${ticketNum}.</p>
