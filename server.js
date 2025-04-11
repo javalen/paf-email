@@ -99,38 +99,73 @@ const tenantTicketTemplate = (
   issue,
   phone
 ) => `
-<html><head></head><body><div style="border: 3px solid;">
-    <div style="padding: 25px;font: 15px Arial, sans-serif;">
-        
-        <p>Hi ${manager},</p>
-        <p></p>
-        <p>${tenant} in unit ${unit} has created a new ticket, the number is ${ticketNum}.</p>
-        
-        <h3>Below is the description of the issue provided:</h3>
-        <p>"${issue}"</p>
-        <p></p>
-        <p>They can be reached ar ${validateAndFormatPhoneNumber(
-          phone
-        )} if you'd like to call them.</p>
-        <p></p>
-        <p>Please login to your dashboard to either accept or reject the ticket.</p>
-        <p></p>
-        <p></p>
-        <p>Thank you for choosing PredictiveAF.</p>
-        <p>Best regards,</p>
-        <p>The PredictiveAF Team</p>
-        <hr>
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 15px;
+        color: #333;
+      }
+      .container {
+        border: 3px solid #ccc;
+        padding: 25px;
+        max-width: 600px;
+        margin: auto;
+      }
+      .footer {
+        font-size: 13px;
+        color: #777;
+        border-top: 1px solid #ccc;
+        padding-top: 15px;
+        margin-top: 30px;
+      }
+      .social a {
+        color: #2a7ae2;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <p>Dear ${manager},</p>
+
+      <p>
+        A new maintenance ticket has been submitted by ${tenant} in unit ${unit}.
+        The ticket number is <strong>${ticketNum}</strong>.
+      </p>
+
+      <h3 style="margin-top: 30px;">Issue Description</h3>
+      <blockquote style="margin: 15px 0; font-style: italic; color: #555;">
+        ${issue}
+      </blockquote>
+
+      <p>
+        You can contact the tenant directly at 
+        <strong>${validateAndFormatPhoneNumber(phone)}</strong>.
+      </p>
+
+      <p>
+        Please log in to your dashboard to review and take action on this ticket.
+      </p>
+
+      <p>Thank you for using PredictiveAF.</p>
+      <p>Best regards,</p>
+      <p><strong>The PredictiveAF Team</strong></p>
+
+      <div class="footer">
         <p><strong>Follow us on social media:</strong></p>
-        <ul>
-            <li><a rel="noreferrer" href="${
-              process.env.PAF_FB_PAGE
-            }">Facebook</a></li>
-            
+        <ul class="social">
+          <li><a href="${
+            process.env.PAF_FB_PAGE
+          }" target="_blank" rel="noreferrer">Facebook</a></li>
         </ul>
-        <p><strong>Contact Us:</strong> PredictiveAF Inc. <a rel="noreferrer">support@predictiveaf.com</a></p>
-        <hr>
+        <p><strong>Contact Us:</strong> PredictiveAF Inc. – <a href="mailto:support@predictiveaf.com">support@predictiveaf.com</a></p>
+      </div>
     </div>
-</div></body></html>
+  </body>
+</html>
+
 `;
 const clientVerificationSuccess = (name, client) => {
   return `<div style="padding: 25px; font-family: Arial, sans-serif; font-size: 15px; color: #333; max-width: 900px; margin: 0 auto; line-height: 1.6;">
