@@ -10,6 +10,8 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 const pb = new PocketBase(process.env.PB_HOST);
+const tuser = process.env.TRANSPORT_USER;
+const tpass = process.env.TRANSPORT_PASS;
 pb.autoCancellation(false);
 //Configure the email transporter - original, slow but works
 // const transporter = nodemailer.createTransport({
@@ -38,8 +40,8 @@ const transporter = nodemailer.createTransport({
   port: 465,
   secure: true, // true for 465, false for other ports
   auth: {
-    user: "support@predictiveaf.com",
-    pass: "Th!sism3",
+    user: tuser,
+    pass: tpass,
   },
 });
 
@@ -72,6 +74,34 @@ const welcomeEmailTemplate = (client, name, verificationLink) => `
 </div></body></html>
 `;
 
+const tenantTicketTemplate = (manager, tenant, unit, ticketNum, issue) => `
+<html><head></head><body><div style="border: 3px solid;">
+    <div style="padding: 25px;font: 15px Arial, sans-serif;">
+        <hr>
+        <p style="text-align: center;"><strong>A new Tenant Ticket has been created!</strong></p>
+        <hr>
+        <p>Hi ${manager},</p>
+        <p></p>
+        <p>${tenant} in unit ${unit} has created a ticket number ${ticketNum}</p>
+        
+        <h3>Below is a description of the issue:</h3>
+        <p>${issue}</p>
+        <p>Please login to your dashboard to either accept or reject the ticket</p>
+        <p></p>
+        <p>Thank you for choosing PredictiveAF.</p>
+        <p>Best regards,</p>
+        <p>The PredictiveAF Team</p>
+        <hr>
+        <p><strong>Follow us on social media:</strong></p>
+        <ul>
+            <li><a rel="noreferrer" href="${process.env.PAF_FB_PAGE}">Facebook</a></li>
+            
+        </ul>
+        <p><strong>Contact Us:</strong> PredictiveAF Inc. <a rel="noreferrer">support@predictiveaf.com</a></p>
+        <hr>
+    </div>
+</div></body></html>
+`;
 const clientVerificationSuccess = (name, client) => {
   return `<div style="padding: 25px; font-family: Arial, sans-serif; font-size: 15px; color: #333; max-width: 900px; margin: 0 auto; line-height: 1.6;">
   <h3 style="font-size: 18px; margin-top: 30px; margin-bottom: 30px; color: #222; text-align: center;">
@@ -485,6 +515,26 @@ app.post("/send-welcome-email", (req, res) => {
       return res.status(500).send(error.toString());
     }
     console.log("Successful sending welcome email to", to, client);
+    res.status(200).send("Email sent: " + info.response);
+  });
+});
+
+app.post("/tenant-ticket-email", (req, res) => {
+  const { to, subject, tenant, manager, unit, issue, ticket_num } = req.body;
+
+  const mailOptions = {
+    from: "support@predictiveaf.com",
+    to: to,
+    subject: subject,
+    html: tenantTicketTemplate(manager, tenant, unit, ticket_num, issue),
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log("Error sending tenant ticket email to", to, error);
+      return res.status(500).send(error.toString());
+    }
+    console.log("Successful sending tenant ticket email email to", to);
     res.status(200).send("Email sent: " + info.response);
   });
 });
