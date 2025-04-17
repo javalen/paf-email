@@ -167,6 +167,89 @@ const tenantTicketTemplate = (
 </html>
 
 `;
+
+const tenantUpdateTicketTemplate = (
+  tenant,
+  unit,
+  ticketNum,
+  issue,
+  phone,
+  ticketLink,
+  facility
+) => `
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 15px;
+        color: #333;
+      }
+      .container {
+        border: 3px solid #ccc;
+        padding: 25px;
+        max-width: 600px;
+        margin: auto;
+      }
+      .footer {
+        font-size: 13px;
+        color: #777;
+        border-top: 1px solid #ccc;
+        padding-top: 15px;
+        margin-top: 30px;
+      }
+      .social a {
+        color: #2a7ae2;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <p>Dear ${tenant},</p>
+
+      <p>
+        Management has been notified of a new maintenance ticket you submitted for unit ${unit}.
+        The ticket number is <strong>${ticketNum}</strong>.
+      </p>
+
+      <h3 style="margin-top: 30px;">Issue Description</h3>
+      <blockquote style="margin: 15px 0; font-style: italic; color: #555;">
+        ${issue}
+      </blockquote>
+
+      <p>
+        You may be contacted by management at 
+        <strong>${validateAndFormatPhoneNumber(phone)}</strong>.
+      </p>
+
+      <p>
+        You can always monitor the status of your ticket at <a href=>${ticketLink}/tenants>Ticket Console</>
+      </p>
+
+      <p>
+        Please do not reply to this email. If you have any questions contact ${facility} management.
+      </p>
+      
+      <p>Thank you for using PredictiveAF.</p>
+      <p>Best regards,</p>
+      <p><strong>The PredictiveAF Team</strong></p>
+
+      <div class="footer">
+        <p><strong>Follow us on social media:</strong></p>
+        <ul class="social">
+          <li><a href="${
+            process.env.PAF_FB_PAGE
+          }" target="_blank" rel="noreferrer">Facebook</a></li>
+        </ul>
+        <p><strong>Contact Us:</strong> PredictiveAF Inc. – <a href="mailto:support@predictiveaf.com">support@predictiveaf.com</a></p>
+      </div>
+    </div>
+  </body>
+</html>
+
+`;
+
 const clientVerificationSuccess = (name, client) => {
   return `<div style="padding: 25px; font-family: Arial, sans-serif; font-size: 15px; color: #333; max-width: 900px; margin: 0 auto; line-height: 1.6;">
   <h3 style="font-size: 18px; margin-top: 30px; margin-bottom: 30px; color: #222; text-align: center;">
@@ -593,6 +676,45 @@ app.post("/tenant-ticket-email", (req, res) => {
     to: to,
     subject: subject,
     html: tenantTicketTemplate(manager, tenant, unit, ticket_num, issue, phone),
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log("Error sending tenant ticket email to", to, error);
+      return res.status(500).send(error.toString());
+    }
+    console.log("Successful sending tenant ticket email email to", to);
+    res.status(200).send("Email sent: " + info.response);
+  });
+});
+
+// This is sent when a tenant submits a maintenance ticket
+app.post("/tenant-update-email", (req, res) => {
+  const {
+    to,
+    subject,
+    tenant,
+    unit,
+    ticketNum,
+    issue,
+    phone,
+    ticketLink,
+    facility,
+  } = req.body;
+
+  const mailOptions = {
+    from: "support@predictiveaf.com",
+    to: to,
+    subject: subject,
+    html: tenantTicketTemplate(
+      tenant,
+      unit,
+      ticketNum,
+      issue,
+      phone,
+      ticketLink,
+      facility
+    ),
   };
 
   transporter.sendMail(mailOptions, (error, info) => {
