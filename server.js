@@ -706,7 +706,7 @@ app.post("/tenant-update-email", (req, res) => {
     from: "support@predictiveaf.com",
     to: to,
     subject: subject,
-    html: tenantTicketTemplate(
+    html: tenantUpdateTicketTemplate(
       tenant,
       unit,
       ticketNum,
