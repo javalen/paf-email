@@ -224,7 +224,7 @@ const tenantUpdateTicketTemplate = (
       </p>
 
       <p>
-        You can always monitor the status of your ticket at <a href=>${ticketLink}/tenants>Ticket Console</>
+        You can always monitor the status of your ticket at <a href=${ticketLink}/tenants>Ticket Console</a>
       </p>
 
       <p>
