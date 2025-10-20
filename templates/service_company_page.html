@@ -6,14 +6,8 @@
   <title>Service Request {{reqNumber}}</title>
   <style>
     :root{
-      --bg:#f6f7fb;
-      --card:#ffffff;
-      --text:#1f2937;
-      --muted:#6b7280;
-      --line:#e5e7eb;
-      --primary:#0f766e;
-      --primary-600:#0b5b56;
-      --dark:#111827;
+      --bg:#f6f7fb;--card:#ffffff;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;
+      --primary:#0f766e;--primary-600:#0b5b56;--dark:#111827
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
@@ -23,21 +17,18 @@
     h2{font-size:16px;margin:0 0 10px}
     .grid{display:grid;gap:14px}
     @media (min-width:720px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
-    .small{font-size:12px}
-    .muted{color:var(--muted)}
+    .small{font-size:12px}.muted{color:var(--muted)}
     label{display:block;font-size:12px;margin:8px 0 6px;color:#374151}
     input,textarea{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff;font:inherit}
     textarea{min-height:110px;resize:vertical}
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .btn{appearance:none;border:0;background:var(--primary);color:#fff;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600;box-shadow:0 4px 14px rgba(15,118,110,.2);transition:transform .04s ease, background .2s ease}
-    .btn:hover{background:var(--primary-600)}
-    .btn:active{transform:translateY(1px)}
+    .btn:hover{background:var(--primary-600)}.btn:active{transform:translateY(1px)}
     .btn.secondary{background:var(--dark)}
     .pill{display:inline-block;padding:3px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted);background:#fff}
     ul.files{margin:6px 0 0 0;padding-left:18px}
     .section-title{display:flex;align-items:center;gap:8px}
     .kvs{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;margin-top:10px}
-    .kvs div{padding:2px 0}
     .kvs .k{color:var(--muted)}
     .hdr{display:flex;align-items:baseline;justify-content:space-between}
     .divider{height:1px;background:var(--line);margin:14px 0}
@@ -77,6 +68,7 @@
       <div class="grid cols-2">
         <div>
           <h2>Description</h2>
+          <!-- cleaned server-side, no extra braces -->
           <div>{{{descHtml}}}</div>
         </div>
         <div>
@@ -120,7 +112,8 @@
       <div class="small muted" style="margin-top:6px">Images/PDFs are attached to this request in PredictiveAF.</div>
       <div style="margin-top:10px">
         <div class="small muted">Files:</div>
-        {{#if filesHtml}}{{{filesHtml}}}{{else}}<div class="small muted">No files attached.</div>{{/if}}
+        <!-- render the prebuilt HTML directly (no conditional markup) -->
+        {{{filesHtml}}}
       </div>
     </div>
 
@@ -138,4 +131,3 @@
   </div>
 </body>
 </html>
-

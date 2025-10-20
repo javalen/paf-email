@@ -32,16 +32,24 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-/** Helper: build “view model” for service record */
+/** Build email/page data for service record */
 function buildServiceRecordView(rec) {
   const fac = rec.expand?.facility || {};
   const svc = rec.expand?.servicer || {};
   const sys = rec.expand?.system || {};
+
   const files = Array.isArray(rec.attachments)
     ? rec.attachments
     : rec.attachments
     ? [rec.attachments]
     : [];
+
+  // Clean description: remove outer braces and convert newlines
+  let rawDesc = String(rec.desc || "").trim();
+  if (rawDesc.startsWith("{") && rawDesc.endsWith("}")) {
+    rawDesc = rawDesc.slice(1, -1).trim();
+  }
+  const descHtml = rawDesc.replace(/\n/g, "<br/>");
 
   const filesHtml = files.length
     ? `<ul>${files
@@ -55,7 +63,7 @@ function buildServiceRecordView(rec) {
             )}" target="_blank" rel="noopener">${f}</a></li>`
         )
         .join("")}</ul>`
-    : `<div style="color:#6b7280">No files attached.</div>`;
+    : `<div class="small muted">No files attached.</div>`;
 
   return {
     id: rec.id,
@@ -77,12 +85,12 @@ function buildServiceRecordView(rec) {
       email: svc.email || "",
     },
     fac_contact_number: rec.fac_contact_number || "",
-    descHtml: String(rec.desc || "").replace(/\n/g, "<br/>"),
+    descHtml, // <— use cleaned version
     reqNumber: rec.svc_record_number || rec.id,
     service_type: rec.service_type || "—",
     status: rec.status || "New",
     systemName: sys.name || rec.service_for || "—",
-    filesHtml,
+    filesHtml, // <— prebuilt (already “no files…” fallback)
   };
 }
 
