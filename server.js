@@ -12,28 +12,267 @@ app.use(cors());
 const pb = new PocketBase(process.env.PB_HOST);
 const tuser = process.env.TRANSPORT_USER;
 const tpass = process.env.TRANSPORT_PASS;
-pb.autoCancellation(false);
-//Configure the email transporter - original, slow but works
-// const transporter = nodemailer.createTransport({
-//   host: "smtp-relay.brevo.com",
-//   port: 587,
-//   secure: false, // true for 465, false for other ports
-//   auth: {
-//     user: "lenflour@gmail.com", // your Brevo email
-//     pass: "Xzn58PRpULQD02Bh", // your Brevo SMTP password
-//   },
-// });
+const path = require("path");
+const multer = require("multer");
+const upload = multer({ storage: multer.memoryStorage() });
 
-//Configure the email transporter
-// const transporter = nodemailer.createTransport({
-//   host: "smtp-relay.brevo.com",
-//   port: 587,
-//   secure: false, // true for 465, false for other ports
-//   auth: {
-//     user: "7ed467001@smtp-brevo.com", // your Brevo email
-//     pass: "yXCkpJGw0Dsb7fQx", // your Brevo SMTP password
-//   },
-// });
+pb.autoCancellation(false);
+
+/** Build a direct PocketBase file URL */
+function pbFileUrl(base, collectionId, recordId, fileName) {
+  if (!base) base = process.env.PB_HOST;
+  return `${base.replace(
+    /\/$/,
+    ""
+  )}/api/files/${collectionId}/${recordId}/${encodeURIComponent(fileName)}`;
+}
+
+/** Format date safely to mmm dd, yyyy */
+function fmtD(d) {
+  try {
+    return new Date(d).toLocaleDateString();
+  } catch {
+    return "";
+  }
+}
+
+/** Compact HTML “mini-console” for service company actions */
+function serviceCompanyPage(rec) {
+  const fac = rec.expand?.facility || {};
+  const svc = rec.expand?.servicer || {};
+  const sys = rec.expand?.system || {};
+  const files = Array.isArray(rec.attachments)
+    ? rec.attachments
+    : rec.attachments
+    ? [rec.attachments]
+    : [];
+  const fileLinks = files
+    .map(
+      (f) =>
+        `<li><a href="${pbFileUrl(
+          process.env.PB_HOST,
+          rec.collectionId,
+          rec.id,
+          f
+        )}" target="_blank" rel="noopener">${f}</a></li>`
+    )
+    .join("");
+
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Service Request ${rec.svc_record_number || rec.id}</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7fb;margin:0;padding:0;color:#1f2937;}
+  .wrap{max-width:880px;margin:24px auto;padding:16px;}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:18px;margin-bottom:14px;}
+  h1{font-size:18px;margin:0 0 2px;}
+  h2{font-size:16px;margin:0 0 10px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .muted{color:#6b7280}
+  label{font-size:12px;color:#374151;display:block;margin:8px 0 6px}
+  input,textarea{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font:inherit}
+  textarea{min-height:96px}
+  .row{display:flex;gap:10px;align-items:center}
+  .btn{appearance:none;border:0;background:#0f766e;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
+  .btn.secondary{background:#1f2937}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .files{padding-left:18px}
+  .hint{font-size:12px;color:#6b7280;margin-top:4px}
+  .small{font-size:12px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h1>Service Request Details</h1>
+        <div class="muted small">Created: ${fmtD(rec.created)}</div>
+      </div>
+      <div class="grid">
+        <div>
+          <h2>Facility</h2>
+          <div><strong>${fac.name || "—"}</strong></div>
+          <div class="muted small">${fac.address || ""}</div>
+          <div class="muted small">${fac.city || ""}, ${fac.state || ""} ${
+    fac.zipcode || ""
+  }</div>
+          <div class="muted small">${rec.fac_contact_number || ""}</div>
+        </div>
+        <div>
+          <h2>Service Company</h2>
+          <div><strong>${svc.name || "—"}</strong></div>
+          <div class="muted small">${svc.address || ""}</div>
+          <div class="muted small">${svc.city || ""}, ${svc.state || ""} ${
+    svc.zip || ""
+  }</div>
+          <div class="muted small">${svc.phone || ""}</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <h2>Description</h2>
+        <div>${(rec.desc || "").replace(/\n/g, "<br/>")}</div>
+      </div>
+
+      <div class="grid" style="margin-top:14px">
+        <div>
+          <div class="muted small">Request #</div>
+          <div><strong>${rec.svc_record_number || rec.id}</strong></div>
+        </div>
+        <div>
+          <div class="muted small">System</div>
+          <div><strong>${sys.name || rec.service_for || "—"}</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Accept this Request</h2>
+      <form class="grid" action="/service/${rec.id}/accept" method="POST">
+        <div>
+          <label>Your Name *</label>
+          <input name="name" required placeholder="Your name"/>
+        </div>
+        <div>
+          <label>Start Date *</label>
+          <input type="date" name="start_date" required/>
+        </div>
+        <div>
+          <button class="btn" type="submit">Accept</button>
+        </div>
+      </form>
+      <div class="hint">Accepting sets the request to <em>accepted</em> and records your name & planned start date.</div>
+    </div>
+
+    <div class="card">
+      <h2>Attach File</h2>
+      <form action="/service/${
+        rec.id
+      }/upload" method="POST" enctype="multipart/form-data" class="row">
+        <input type="file" name="file" required/>
+        <input type="text" name="rename" placeholder="Rename (optional: e.g. estimate.pdf)"/>
+        <button class="btn secondary" type="submit">Upload</button>
+      </form>
+      <div class="hint">Images/PDFs are attached to this request in PredictiveAF.</div>
+      <div style="margin-top:10px">
+        <div class="muted small">Files:</div>
+        ${
+          files.length
+            ? `<ul class="files">${fileLinks}</ul>`
+            : `<div class="small">No files attached.</div>`
+        }
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Add a Comment</h2>
+      <form action="/service/${rec.id}/comment" method="POST">
+        <label>Comment *</label>
+        <textarea name="comment" required></textarea>
+        <div class="row" style="justify-content:flex-end;margin-top:8px">
+          <button class="btn secondary" type="submit">Add Comment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/** HTML email for the service company */
+function serviceEmailTemplate(rec, pageUrl) {
+  const fac = rec.expand?.facility || {};
+  const svc = rec.expand?.servicer || {};
+  const sys = rec.expand?.system || {};
+  const files = Array.isArray(rec.attachments)
+    ? rec.attachments
+    : rec.attachments
+    ? [rec.attachments]
+    : [];
+
+  const filesHtml = files.length
+    ? `<ul>${files
+        .map(
+          (f) =>
+            `<li><a href="${pbFileUrl(
+              process.env.PB_HOST,
+              rec.collectionId,
+              rec.id,
+              f
+            )}" target="_blank" rel="noopener">${f}</a></li>`
+        )
+        .join("")}</ul>`
+    : `<div style="color:#6b7280">No files attached.</div>`;
+
+  return `
+  <div style="font-family:Arial,Helvetica,sans-serif;color:#111;line-height:1.45">
+    <h2 style="margin:0 0 8px">New Service Request</h2>
+    <div style="font-size:13px;color:#555;margin-bottom:14px">Created: ${fmtD(
+      rec.created
+    )}</div>
+
+    <table style="width:100%;border-collapse:collapse">
+      <tr>
+        <td style="vertical-align:top;padding:8px;border:1px solid #eee">
+          <strong>Facility</strong><br/>
+          ${fac.name || "—"}<br/>
+          <span style="color:#666">${fac.address || ""}</span><br/>
+          <span style="color:#666">${fac.city || ""}, ${fac.state || ""} ${
+    fac.zipcode || ""
+  }</span><br/>
+          <span style="color:#666">${rec.fac_contact_number || ""}</span>
+        </td>
+        <td style="vertical-align:top;padding:8px;border:1px solid #eee">
+          <strong>Service Company</strong><br/>
+          ${svc.name || "—"}<br/>
+          <span style="color:#666">${svc.address || ""}</span><br/>
+          <span style="color:#666">${svc.city || ""}, ${svc.state || ""} ${
+    svc.zip || ""
+  }</span><br/>
+          <span style="color:#666">${svc.phone || ""}</span>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin-top:14px"><strong>Description</strong><br/>${(
+      rec.desc || ""
+    ).replace(/\n/g, "<br/>")}</p>
+
+    <table style="margin-top:8px">
+      <tr><td style="padding:2px 8px 2px 0;color:#666">Request #</td><td><strong>${
+        rec.svc_record_number || rec.id
+      }</strong></td></tr>
+      <tr><td style="padding:2px 8px 2px 0;color:#666">System</td><td><strong>${
+        sys.name || rec.service_for || "—"
+      }</strong></td></tr>
+      <tr><td style="padding:2px 8px 2px 0;color:#666">Type</td><td>${
+        rec.service_type || "—"
+      }</td></tr>
+      <tr><td style="padding:2px 8px 2px 0;color:#666">Status</td><td>${
+        rec.status || "New"
+      }</td></tr>
+    </table>
+
+    <div style="margin:16px 0">
+      <a href="${pageUrl}"
+         style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px">
+         Open Request
+      </a>
+    </div>
+
+    <div style="margin-top:12px">
+      <strong>Files</strong>
+      ${filesHtml}
+    </div>
+
+    <div style="margin-top:18px;font-size:12px;color:#6b7280">
+      You can accept the request, upload files, and add comments from the page above.
+    </div>
+  </div>`;
+}
 
 const transporter = nodemailer.createTransport({
   host: "s1099.usc1.mysecurecloudhost.com",
@@ -943,6 +1182,161 @@ app.post("/send-new-admin-email", (req, res) => {
     res.status(200).send("Email sent: " + info.response);
   });
 });
+
+/**
+ * POST /email-service-co
+ * Body: { record: <service_history with expand>, to?: string }
+ * If expand is missing, the endpoint will fetch it.
+ */
+app.post("/email-service-co", async (req, res) => {
+  try {
+    const payload = req.body?.record || req.body;
+    console.log("Record", payload);
+    if (!payload || !payload.id) {
+      return res
+        .status(400)
+        .send("Missing service_history record (id required).");
+    }
+
+    // Ensure the record is fresh and expanded
+    const rec = payload.expand
+      ? payload
+      : await pb.collection("service_history").getOne(payload.id, {
+          expand: "facility,servicer,system",
+        });
+
+    // figure out recipient
+    const to =
+      req.body?.to ||
+      rec.expand?.servicer?.email ||
+      process.env.FALLBACK_SERVICE_EMAIL; // optional fallback
+    console.log("Sending email to:", rec.expand?.servicer?.email);
+    if (!to)
+      return res.status(400).send("No destination email for service company.");
+
+    // public page URL for actions
+    const pageUrl = `${process.env.PAF_MAIL_HOST.replace(/\/$/, "")}/service/${
+      rec.id
+    }`;
+
+    const mailOptions = {
+      from: "support@predictiveaf.com",
+      to,
+      subject: `Service Request ${rec.svc_record_number || rec.id} — ${
+        rec.expand?.facility?.name || ""
+      }`,
+      html: serviceEmailTemplate(rec, pageUrl),
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("Error sending service company email:", error);
+        return res.status(500).send(error.toString());
+      }
+      res.status(200).send("Email sent: " + info.response);
+    });
+  } catch (err) {
+    console.error("email-service-co failed", err);
+    res.status(500).send("Internal error sending email.");
+  }
+});
+
+// Show interactive page (accept, upload, comment)
+app.get("/service/:id", async (req, res) => {
+  try {
+    const rec = await pb.collection("service_history").getOne(req.params.id, {
+      expand: "facility,servicer,system",
+    });
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.status(200).send(serviceCompanyPage(rec));
+  } catch (e) {
+    res.status(404).send("Service request not found.");
+  }
+});
+
+// Accept request
+app.post(
+  "/service/:id/accept",
+  express.urlencoded({ extended: true }),
+  async (req, res) => {
+    const { name, start_date } = req.body || {};
+    if (!name || !start_date)
+      return res.status(400).send("Name and Start Date are required.");
+    try {
+      await pb.collection("service_history").update(req.params.id, {
+        accepted: true,
+        accepted_by: name,
+        svc_start_date: start_date,
+        status: "Accepted",
+      });
+      res.redirect(`/service/${req.params.id}`);
+    } catch (e) {
+      console.error("Accept failed", e);
+      res.status(500).send("Failed to accept request.");
+    }
+  }
+);
+
+// Upload attachment
+app.post("/service/:id/upload", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).send("Missing file.");
+
+    const rec = await pb.collection("service_history").getOne(req.params.id);
+    const existing = Array.isArray(rec.attachments)
+      ? rec.attachments
+      : rec.attachments
+      ? [rec.attachments]
+      : [];
+
+    const fd = new FormData();
+    existing.forEach((fn) => fd.append("attachments", fn));
+    // optional rename
+    const desiredName = (req.body?.rename || "").trim();
+    const finalName = desiredName
+      ? (() => {
+          const base = desiredName.replace(/[\\/:*?"<>|]+/g, "_").trim();
+          const ext = path.extname(req.file.originalname);
+          return base.toLowerCase().endsWith(ext.toLowerCase())
+            ? base
+            : `${base}${ext}`;
+        })()
+      : req.file.originalname;
+
+    fd.append("attachments", new Blob([req.file.buffer]), finalName);
+
+    await pb.collection("service_history").update(req.params.id, fd);
+    res.redirect(`/service/${req.params.id}`);
+  } catch (e) {
+    console.error("Upload failed", e);
+    res.status(500).send("Failed to upload file.");
+  }
+});
+
+// Add comment
+app.post(
+  "/service/:id/comment",
+  express.urlencoded({ extended: true }),
+  async (req, res) => {
+    const text = (req.body?.comment || "").trim();
+    if (!text) return res.status(400).send("Comment is required.");
+    try {
+      const user = "Service Company"; // or derive from a token in query if you add auth
+      const com = await pb.collection("service_comment").create({
+        comment: text,
+        service_id: req.params.id,
+        user,
+      });
+      await pb
+        .collection("service_history")
+        .update(req.params.id, { "comments+": [com.id] });
+      res.redirect(`/service/${req.params.id}`);
+    } catch (e) {
+      console.error("Comment failed", e);
+      res.status(500).send("Failed to add comment.");
+    }
+  }
+);
 
 const sendVerificaitonSuccessEmail = (to, name, client) => {
   console.log("sendVerificaitonSuccessEmail");
