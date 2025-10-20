@@ -1,50 +1,98 @@
 <!doctype html>
 <html>
-<head>…</head>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Service Request {{reqNumber}}</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --primary:#0f766e;
+      --primary-600:#0b5b56;
+      --dark:#111827;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:920px;margin:28px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 24px rgba(17,24,39,.06);padding:20px;margin-bottom:16px}
+    h1{font-size:22px;margin:0 0 6px}
+    h2{font-size:16px;margin:0 0 10px}
+    .grid{display:grid;gap:14px}
+    @media (min-width:720px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
+    .small{font-size:12px}
+    .muted{color:var(--muted)}
+    label{display:block;font-size:12px;margin:8px 0 6px;color:#374151}
+    input,textarea{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff;font:inherit}
+    textarea{min-height:110px;resize:vertical}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn{appearance:none;border:0;background:var(--primary);color:#fff;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600;box-shadow:0 4px 14px rgba(15,118,110,.2);transition:transform .04s ease, background .2s ease}
+    .btn:hover{background:var(--primary-600)}
+    .btn:active{transform:translateY(1px)}
+    .btn.secondary{background:var(--dark)}
+    .pill{display:inline-block;padding:3px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted);background:#fff}
+    ul.files{margin:6px 0 0 0;padding-left:18px}
+    .section-title{display:flex;align-items:center;gap:8px}
+    .kvs{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;margin-top:10px}
+    .kvs div{padding:2px 0}
+    .kvs .k{color:var(--muted)}
+    .hdr{display:flex;align-items:baseline;justify-content:space-between}
+    .divider{height:1px;background:var(--line);margin:14px 0}
+  </style>
+</head>
 <body>
   <div class="wrap">
+
     <div class="card">
-      <div class="row" style="justify-content:space-between">
+      <div class="hdr">
         <h1>Service Request Details</h1>
-        <div class="muted small">Created: {{createdPretty}}</div>
+        <div class="small muted">Created: {{createdPretty}}</div>
       </div>
-      <div class="grid">
+
+      <div class="grid cols-2">
         <div>
-          <h2>Facility</h2>
+          <div class="section-title">
+            <h2>Facility</h2><span class="pill">#{{reqNumber}}</span>
+          </div>
           <div><strong>{{facility.name}}</strong></div>
-          <div class="muted small">{{facility.address}}</div>
-          <div class="muted small">{{facility.city}}, {{facility.state}} {{facility.zipcode}}</div>
-          <div class="muted small">{{fac_contact_number}}</div>
+          <div class="small muted">{{facility.address}}</div>
+          <div class="small muted">{{facility.city}}, {{facility.state}} {{facility.zipcode}}</div>
+          <div class="small muted">{{fac_contact_number}}</div>
         </div>
+
         <div>
           <h2>Service Company</h2>
           <div><strong>{{servicer.name}}</strong></div>
-          <div class="muted small">{{servicer.address}}</div>
-          <div class="muted small">{{servicer.city}}, {{servicer.state}} {{servicer.zip}}</div>
-          <div class="muted small">{{servicer.phone}}</div>
+          <div class="small muted">{{servicer.address}}</div>
+          <div class="small muted">{{servicer.city}}, {{servicer.state}} {{servicer.zip}}</div>
+          <div class="small muted">{{servicer.phone}}</div>
         </div>
       </div>
 
-      <div style="margin-top:12px">
-        <h2>Description</h2>
-        <div>{{descHtml}}</div>
-      </div>
+      <div class="divider"></div>
 
-      <div class="grid" style="margin-top:14px">
+      <div class="grid cols-2">
         <div>
-          <div class="muted small">Request #</div>
-          <div><strong>{{reqNumber}}</strong></div>
+          <h2>Description</h2>
+          <div>{{{descHtml}}}</div>
         </div>
         <div>
-          <div class="muted small">System</div>
-          <div><strong>{{systemName}}</strong></div>
+          <h2>Meta</h2>
+          <div class="kvs">
+            <div class="k">System</div><div><strong>{{systemName}}</strong></div>
+            <div class="k">Type</div><div>{{service_type}}</div>
+            <div class="k">Status</div><div>{{status}}</div>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="card">
       <h2>Accept this Request</h2>
-      <form class="grid" action="/service/{{id}}/accept" method="POST">
+      <form class="grid cols-2" action="/service/{{id}}/accept" method="POST">
         <div>
           <label>Your Name *</label>
           <input name="name" required placeholder="Your name"/>
@@ -53,11 +101,13 @@
           <label>Start Date *</label>
           <input type="date" name="start_date" required/>
         </div>
-        <div>
-          <button class="btn" type="submit">Accept</button>
+        <div class="row" style="justify-content:flex-end">
+          <button class="btn" type="submit">Accept Request</button>
         </div>
       </form>
-      <div class="hint">Accepting sets the request to <em>accepted</em> and records your name & planned start date.</div>
+      <div class="small muted" style="margin-top:6px">
+        Accepting sets the request to <em>Accepted</em> and records your name & planned start date.
+      </div>
     </div>
 
     <div class="card">
@@ -67,10 +117,10 @@
         <input type="text" name="rename" placeholder="Rename (optional: e.g. estimate.pdf)"/>
         <button class="btn secondary" type="submit">Upload</button>
       </form>
-      <div class="hint">Images/PDFs are attached to this request in PredictiveAF.</div>
+      <div class="small muted" style="margin-top:6px">Images/PDFs are attached to this request in PredictiveAF.</div>
       <div style="margin-top:10px">
-        <div class="muted small">Files:</div>
-        {{filesHtml}}
+        <div class="small muted">Files:</div>
+        {{#if filesHtml}}{{{filesHtml}}}{{else}}<div class="small muted">No files attached.</div>{{/if}}
       </div>
     </div>
 
@@ -84,6 +134,8 @@
         </div>
       </form>
     </div>
+
   </div>
 </body>
 </html>
+
