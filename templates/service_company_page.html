@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>…</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h1>Service Request Details</h1>
+        <div class="muted small">Created: {{createdPretty}}</div>
+      </div>
+      <div class="grid">
+        <div>
+          <h2>Facility</h2>
+          <div><strong>{{facility.name}}</strong></div>
+          <div class="muted small">{{facility.address}}</div>
+          <div class="muted small">{{facility.city}}, {{facility.state}} {{facility.zipcode}}</div>
+          <div class="muted small">{{fac_contact_number}}</div>
+        </div>
+        <div>
+          <h2>Service Company</h2>
+          <div><strong>{{servicer.name}}</strong></div>
+          <div class="muted small">{{servicer.address}}</div>
+          <div class="muted small">{{servicer.city}}, {{servicer.state}} {{servicer.zip}}</div>
+          <div class="muted small">{{servicer.phone}}</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <h2>Description</h2>
+        <div>{{descHtml}}</div>
+      </div>
+
+      <div class="grid" style="margin-top:14px">
+        <div>
+          <div class="muted small">Request #</div>
+          <div><strong>{{reqNumber}}</strong></div>
+        </div>
+        <div>
+          <div class="muted small">System</div>
+          <div><strong>{{systemName}}</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Accept this Request</h2>
+      <form class="grid" action="/service/{{id}}/accept" method="POST">
+        <div>
+          <label>Your Name *</label>
+          <input name="name" required placeholder="Your name"/>
+        </div>
+        <div>
+          <label>Start Date *</label>
+          <input type="date" name="start_date" required/>
+        </div>
+        <div>
+          <button class="btn" type="submit">Accept</button>
+        </div>
+      </form>
+      <div class="hint">Accepting sets the request to <em>accepted</em> and records your name & planned start date.</div>
+    </div>
+
+    <div class="card">
+      <h2>Attach File</h2>
+      <form action="/service/{{id}}/upload" method="POST" enctype="multipart/form-data" class="row">
+        <input type="file" name="file" required/>
+        <input type="text" name="rename" placeholder="Rename (optional: e.g. estimate.pdf)"/>
+        <button class="btn secondary" type="submit">Upload</button>
+      </form>
+      <div class="hint">Images/PDFs are attached to this request in PredictiveAF.</div>
+      <div style="margin-top:10px">
+        <div class="muted small">Files:</div>
+        {{filesHtml}}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Add a Comment</h2>
+      <form action="/service/{{id}}/comment" method="POST">
+        <label>Comment *</label>
+        <textarea name="comment" required></textarea>
+        <div class="row" style="justify-content:flex-end;margin-top:8px">
+          <button class="btn secondary" type="submit">Add Comment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

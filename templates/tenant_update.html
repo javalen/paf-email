@@ -1,0 +1,42 @@
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body{font-family:Arial,sans-serif;font-size:15px;color:#333}
+    .container{border:3px solid #ccc;padding:25px;max-width:600px;margin:auto}
+    .footer{font-size:13px;color:#777;border-top:1px solid #ccc;padding-top:15px;margin-top:30px}
+    .social a{color:#2a7ae2;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <p>Dear {{tenant}},</p>
+
+    <p>
+      Management has been notified of a new maintenance ticket you submitted for unit {{unit}}.
+      The ticket number is <strong>{{ticketNum}}</strong>.
+    </p>
+
+    <h3 style="margin-top:30px;">Issue Description</h3>
+    <blockquote style="margin:15px 0;font-style:italic;color:#555;">{{issue}}</blockquote>
+
+    <p>You may be contacted by management at <strong>{{formattedPhone}}</strong>.</p>
+
+    <p>You can always monitor the status of your ticket at <a href="{{ticketConsoleUrl}}">Ticket Console</a></p>
+
+    <p>Please do not reply to this email. If you have any questions contact {{facility}} management.</p>
+
+    <p>Thank you for using PredictiveAF.</p>
+    <p>Best regards,</p>
+    <p><strong>The PredictiveAF Team</strong></p>
+
+    <div class="footer">
+      <p><strong>Follow us on social media:</strong></p>
+      <ul class="social">
+        <li><a href="{{PAF_FB_PAGE}}" target="_blank" rel="noreferrer">Facebook</a></li>
+      </ul>
+      <p><strong>Contact Us:</strong> PredictiveAF Inc. – <a href="mailto:support@predictiveaf.com">support@predictiveaf.com</a></p>
+    </div>
+  </div>
+</body>
+</html>

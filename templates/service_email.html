@@ -1,0 +1,48 @@
+<div style="font-family:Arial,Helvetica,sans-serif;color:#111;line-height:1.45">
+  <h2 style="margin:0 0 8px">New Service Request</h2>
+  <div style="font-size:13px;color:#555;margin-bottom:14px">Created: {{createdPretty}}</div>
+
+  <table style="width:100%;border-collapse:collapse">
+    <tr>
+      <td style="vertical-align:top;padding:8px;border:1px solid #eee">
+        <strong>Facility</strong><br/>
+        {{facility.name}}<br/>
+        <span style="color:#666">{{facility.address}}</span><br/>
+        <span style="color:#666">{{facility.city}}, {{facility.state}} {{facility.zipcode}}</span><br/>
+        <span style="color:#666">{{fac_contact_number}}</span>
+      </td>
+      <td style="vertical-align:top;padding:8px;border:1px solid #eee">
+        <strong>Service Company</strong><br/>
+        {{servicer.name}}<br/>
+        <span style="color:#666">{{servicer.address}}</span><br/>
+        <span style="color:#666">{{servicer.city}}, {{servicer.state}} {{servicer.zip}}</span><br/>
+        <span style="color:#666">{{servicer.phone}}</span>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin-top:14px"><strong>Description</strong><br/>{{descHtml}}</p>
+
+  <table style="margin-top:8px">
+    <tr><td style="padding:2px 8px 2px 0;color:#666">Request #</td><td><strong>{{reqNumber}}</strong></td></tr>
+    <tr><td style="padding:2px 8px 2px 0;color:#666">System</td><td><strong>{{systemName}}</strong></td></tr>
+    <tr><td style="padding:2px 8px 2px 0;color:#666">Type</td><td>{{service_type}}</td></tr>
+    <tr><td style="padding:2px 8px 2px 0;color:#666">Status</td><td>{{status}}</td></tr>
+  </table>
+
+  <div style="margin:16px 0">
+    <a href="{{pageUrl}}"
+       style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px">
+       Open Request
+    </a>
+  </div>
+
+  <div style="margin-top:12px">
+    <strong>Files</strong>
+    {{filesHtml}}
+  </div>
+
+  <div style="margin-top:18px;font-size:12px;color:#6b7280">
+    You can accept the request, upload files, and add comments from the page above.
+  </div>
+</div>
