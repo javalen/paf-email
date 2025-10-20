@@ -44,13 +44,14 @@ function buildServiceRecordView(rec) {
     ? [rec.attachments]
     : [];
 
-  // Clean description: remove outer braces and convert newlines
+  // --- remove one pair of outer braces if present, then convert newlines ---
   let rawDesc = String(rec.desc || "").trim();
   if (rawDesc.startsWith("{") && rawDesc.endsWith("}")) {
     rawDesc = rawDesc.slice(1, -1).trim();
   }
   const descHtml = rawDesc.replace(/\n/g, "<br/>");
 
+  // --- build clean attachments HTML (no braces) ---
   const filesHtml = files.length
     ? `<ul>${files
         .map(
@@ -85,12 +86,12 @@ function buildServiceRecordView(rec) {
       email: svc.email || "",
     },
     fac_contact_number: rec.fac_contact_number || "",
-    descHtml, // <— use cleaned version
+    descHtml, // cleaned description (no outer braces)
     reqNumber: rec.svc_record_number || rec.id,
     service_type: rec.service_type || "—",
     status: rec.status || "New",
     systemName: sys.name || rec.service_for || "—",
-    filesHtml, // <— prebuilt (already “no files…” fallback)
+    filesHtml, // prebuilt (no braces)
   };
 }
 
