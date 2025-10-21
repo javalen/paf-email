@@ -44,14 +44,13 @@ function buildServiceRecordView(rec) {
     ? [rec.attachments]
     : [];
 
-  // --- remove one pair of outer braces if present, then convert newlines ---
+  // clean description braces + line breaks
   let rawDesc = String(rec.desc || "").trim();
   if (rawDesc.startsWith("{") && rawDesc.endsWith("}")) {
     rawDesc = rawDesc.slice(1, -1).trim();
   }
   const descHtml = rawDesc.replace(/\n/g, "<br/>");
 
-  // --- build clean attachments HTML (no braces) ---
   const filesHtml = files.length
     ? `<ul>${files
         .map(
@@ -68,6 +67,10 @@ function buildServiceRecordView(rec) {
 
   return {
     id: rec.id,
+    // 🔽 THIS WAS MISSING — drives the Accept/Start/Complete toggle in the template
+    accepted: !!rec.accepted,
+    status: rec.status || "New",
+
     createdPretty: fmtD(rec.created),
     facility: {
       name: fac.name || "—",
@@ -86,12 +89,11 @@ function buildServiceRecordView(rec) {
       email: svc.email || "",
     },
     fac_contact_number: rec.fac_contact_number || "",
-    descHtml, // cleaned description (no outer braces)
+    descHtml,
     reqNumber: rec.svc_record_number || rec.id,
     service_type: rec.service_type || "—",
-    status: rec.status || "New",
     systemName: sys.name || rec.service_for || "—",
-    filesHtml, // prebuilt (no braces)
+    filesHtml,
   };
 }
 
