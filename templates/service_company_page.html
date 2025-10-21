@@ -1,90 +1,94 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Service Request {{reqNumber}}</title>
-  <style>
-    :root{
-      --bg:#f6f7fb;--card:#ffffff;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;
-      --primary:#0f766e;--primary-600:#0b5b56;--dark:#111827
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    .wrap{max-width:920px;margin:28px auto;padding:0 16px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 24px rgba(17,24,39,.06);padding:20px;margin-bottom:16px}
-    h1{font-size:22px;margin:0 0 6px}
-    h2{font-size:16px;margin:0 0 10px}
-    .grid{display:grid;gap:14px}
-    @media (min-width:720px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
-    .small{font-size:12px}.muted{color:var(--muted)}
-    label{display:block;font-size:12px;margin:8px 0 6px;color:#374151}
-    input,textarea{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff;font:inherit}
-    textarea{min-height:110px;resize:vertical}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .btn{appearance:none;border:0;background:var(--primary);color:#fff;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600;box-shadow:0 4px 14px rgba(15,118,110,.2);transition:transform .04s ease, background .2s ease}
-    .btn:hover{background:var(--primary-600)}.btn:active{transform:translateY(1px)}
-    .btn.secondary{background:var(--dark)}
-    .pill{display:inline-block;padding:3px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted);background:#fff}
-    ul.files{margin:6px 0 0 0;padding-left:18px}
-    .section-title{display:flex;align-items:center;gap:8px}
-    .kvs{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;margin-top:10px}
-    .kvs .k{color:var(--muted)}
-    .hdr{display:flex;align-items:baseline;justify-content:space-between}
-    .divider{height:1px;background:var(--line);margin:14px 0}
-  </style>
-</head>
-<body>
-  <div class="wrap">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Service Request {{reqNumber}}</title>
+<style>
+  :root {
+    --card-bg:#fff; --card-br:#e5e7eb; --muted:#6b7280; --ink:#1f2937;
+    --btn:#0f766e; --btn-h:#0a5c56; --btn-2:#1f2937; --btn-2h:#111827;
+    --ok:#16a34a; --ok-h:#15803d; --blue:#2563eb; --blue-h:#1d4ed8;
+  }
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7fb;margin:0;padding:0;color:var(--ink);}
+  .wrap{max-width:880px;margin:24px auto;padding:16px;}
+  .card{background:var(--card-bg);border:1px solid var(--card-br);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:18px;margin-bottom:14px;}
+  h1{font-size:18px;margin:0 0 2px;}
+  h2{font-size:16px;margin:0 0 10px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .muted{color:var(--muted)}
+  label{font-size:12px;color:#374151;display:block;margin:8px 0 6px}
+  input,textarea,select{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font:inherit}
+  textarea{min-height:96px}
+  .row{display:flex;gap:10px;align-items:center}
+  .btn{appearance:none;border:0;background:var(--btn);color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
+  .btn:hover{background:var(--btn-h)}
+  .btn.secondary{background:var(--btn-2)}
+  .btn.secondary:hover{background:var(--btn-2h)}
+  .btn.ok{background:var(--ok)}
+  .btn.ok:hover{background:var(--ok-h)}
+  .btn.blue{background:var(--blue)}
+  .btn.blue:hover{background:var(--blue-h)}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .files{padding-left:18px}
+  .hint{font-size:12px;color:#6b7280;margin-top:4px}
+  .small{font-size:12px}
 
+  /* modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:40}
+  .modal{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);width:min(92vw,520px);overflow:hidden}
+  .modal-h{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;padding:10px 14px}
+  .modal-b{padding:14px}
+  .modal.show{display:flex}
+</style>
+</head>
+<body data-accepted="{{accepted}}" data-status="{{status}}" data-id="{{id}}">
+  <div class="wrap">
     <div class="card">
-      <div class="hdr">
+      <div class="row" style="justify-content:space-between">
         <h1>Service Request Details</h1>
-        <div class="small muted">Created: {{createdPretty}}</div>
+        <div class="muted small">Created: {{createdPretty}}</div>
       </div>
 
-      <div class="grid cols-2">
+      <div class="grid">
         <div>
-          <div class="section-title">
-            <h2>Facility</h2><span class="pill">#{{reqNumber}}</span>
-          </div>
+          <h2>Facility</h2>
           <div><strong>{{facility.name}}</strong></div>
-          <div class="small muted">{{facility.address}}</div>
-          <div class="small muted">{{facility.city}}, {{facility.state}} {{facility.zipcode}}</div>
-          <div class="small muted">{{fac_contact_number}}</div>
+          <div class="muted small">{{facility.address}}</div>
+          <div class="muted small">{{facility.city}}, {{facility.state}} {{facility.zipcode}}</div>
+          <div class="muted small">{{fac_contact_number}}</div>
         </div>
-
         <div>
           <h2>Service Company</h2>
           <div><strong>{{servicer.name}}</strong></div>
-          <div class="small muted">{{servicer.address}}</div>
-          <div class="small muted">{{servicer.city}}, {{servicer.state}} {{servicer.zip}}</div>
-          <div class="small muted">{{servicer.phone}}</div>
+          <div class="muted small">{{servicer.address}}</div>
+          <div class="muted small">{{servicer.city}}, {{servicer.state}} {{servicer.zip}}</div>
+          <div class="muted small">{{servicer.phone}}</div>
         </div>
       </div>
 
-      <div class="divider"></div>
+      <div style="margin-top:12px">
+        <h2>Description</h2>
+        <!-- no braces, render as HTML that we already sanitized -->
+        <div>{{descHtml}}</div>
+      </div>
 
-      <div class="grid cols-2">
+      <div class="grid" style="margin-top:14px">
         <div>
-          <h2>Description</h2>
-          <!-- cleaned server-side, no extra braces -->
-          <div>{{{descHtml}}}</div>
+          <div class="muted small">Request #</div>
+          <div><strong>{{reqNumber}}</strong></div>
         </div>
         <div>
-          <h2>Meta</h2>
-          <div class="kvs">
-            <div class="k">System</div><div><strong>{{systemName}}</strong></div>
-            <div class="k">Type</div><div>{{service_type}}</div>
-            <div class="k">Status</div><div>{{status}}</div>
-          </div>
+          <div class="muted small">System</div>
+          <div><strong>{{systemName}}</strong></div>
         </div>
       </div>
     </div>
 
-    <div class="card">
+    <!-- Accept card (hidden once accepted) -->
+    <div class="card" id="acceptCard">
       <h2>Accept this Request</h2>
-      <form class="grid cols-2" action="/service/{{id}}/accept" method="POST">
+      <form class="grid" action="/service/{{id}}/accept" method="POST">
         <div>
           <label>Your Name *</label>
           <input name="name" required placeholder="Your name"/>
@@ -93,30 +97,40 @@
           <label>Start Date *</label>
           <input type="date" name="start_date" required/>
         </div>
-        <div class="row" style="justify-content:flex-end">
+        <div>
           <button class="btn" type="submit">Accept Request</button>
         </div>
       </form>
-      <div class="small muted" style="margin-top:6px">
-        Accepting sets the request to <em>Accepted</em> and records your name & planned start date.
-      </div>
+      <div class="hint">Accepting sets the request to <em>Accepted</em> and records your name & planned start date.</div>
     </div>
 
+    <!-- Start/Complete action card (visible after acceptance) -->
+    <div class="card" id="actionsCard" style="display:none">
+      <h2>Next Actions</h2>
+      <div class="row" style="gap:8px">
+        <button class="btn blue" id="btnStart">Start Working</button>
+        <button class="btn ok" id="btnComplete" style="display:none">Work Complete</button>
+      </div>
+      <div class="hint">“Start Working” sets the status to <em>In Progress</em>. “Work Complete” records completion details.</div>
+    </div>
+
+    <!-- Attachments -->
     <div class="card">
       <h2>Attach File</h2>
-      <form action="/service/{{id}}/upload" method="POST" enctype="multipart/form-data" class="row">
+      <form action="/service/{{id}}/upload" method="POST" enctype="multipart/form-data" class="row" style="flex-wrap:wrap;gap:8px">
         <input type="file" name="file" required/>
         <input type="text" name="rename" placeholder="Rename (optional: e.g. estimate.pdf)"/>
         <button class="btn secondary" type="submit">Upload</button>
       </form>
-      <div class="small muted" style="margin-top:6px">Images/PDFs are attached to this request in PredictiveAF.</div>
+      <div class="hint">Images/PDFs are attached to this request in PredictiveAF.</div>
       <div style="margin-top:10px">
-        <div class="small muted">Files:</div>
-        <!-- render the prebuilt HTML directly (no conditional markup) -->
-        {{{filesHtml}}}
+        <div class="muted small">Files:</div>
+        <!-- no braces showing literally; we inject ready-to-render HTML -->
+        {{filesHtml}}
       </div>
     </div>
 
+    <!-- Comments -->
     <div class="card">
       <h2>Add a Comment</h2>
       <form action="/service/{{id}}/comment" method="POST">
@@ -127,7 +141,120 @@
         </div>
       </form>
     </div>
-
   </div>
+
+  <!-- Start modal -->
+  <div class="modal-backdrop" id="startModal">
+    <div class="modal">
+      <div class="modal-h">
+        <strong>Start Working</strong>
+        <button class="btn secondary" id="closeStart" type="button" style="padding:4px 10px">×</button>
+      </div>
+      <div class="modal-b">
+        <form id="startForm" method="POST" action="/service/{{id}}/start">
+          <label>Name *</label>
+          <input name="name" required placeholder="Your name"/>
+          <label style="margin-top:10px">Start Date *</label>
+          <input type="date" name="start_date" required/>
+          <div class="row" style="justify-content:flex-end;margin-top:12px">
+            <button class="btn blue" type="submit">Start Working</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Complete modal -->
+  <div class="modal-backdrop" id="completeModal">
+    <div class="modal">
+      <div class="modal-h">
+        <strong>Complete Work</strong>
+        <button class="btn secondary" id="closeComplete" type="button" style="padding:4px 10px">×</button>
+      </div>
+      <div class="modal-b">
+        <form id="completeForm" method="POST" action="/service/{{id}}/complete" enctype="multipart/form-data">
+          <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label>Name *</label>
+              <input name="name" required placeholder="Your name"/>
+            </div>
+            <div>
+              <label>Date *</label>
+              <input type="date" name="date" required/>
+            </div>
+          </div>
+
+          <label style="margin-top:10px">Cost (USD)</label>
+          <input name="cost" type="number" step="0.01" min="0" placeholder="0.00"/>
+
+          <label style="margin-top:10px">Upload Invoice (optional)</label>
+          <input type="file" name="invoice"/>
+
+          <div class="row" style="margin-top:12px">
+            <input id="wtyToggle" type="checkbox" name="warranty" value="1"/>
+            <label for="wtyToggle" style="margin:0">Warranty</label>
+          </div>
+
+          <div id="wtyFields" style="display:none">
+            <label>Covered under this warranty</label>
+            <textarea name="covered" placeholder="Describe what is covered…"></textarea>
+            <label>Expires</label>
+            <input type="date" name="expires"/>
+          </div>
+
+          <div class="row" style="justify-content:flex-end;margin-top:12px">
+            <button class="btn ok" type="submit">Complete Work</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const root = document.body;
+  const accepted = (root.dataset.accepted || '').toLowerCase() === 'true';
+  const status = (root.dataset.status || '').trim();
+  const acceptCard = document.getElementById('acceptCard');
+  const actionsCard = document.getElementById('actionsCard');
+  const btnStart = document.getElementById('btnStart');
+  const btnComplete = document.getElementById('btnComplete');
+
+  // Show/hide blocks based on accepted/status
+  if (accepted) {
+    acceptCard.style.display = 'none';
+    actionsCard.style.display = 'block';
+    if (status === 'In Progress') {
+      btnStart.style.display = 'none';
+      btnComplete.style.display = 'inline-block';
+    } else {
+      btnStart.style.display = 'inline-block';
+      btnComplete.style.display = 'none';
+    }
+  }
+
+  // Start modal
+  const startModal = document.getElementById('startModal');
+  btnStart?.addEventListener('click', () => startModal.classList.add('show'));
+  document.getElementById('closeStart').addEventListener('click', () => startModal.classList.remove('show'));
+  startModal.addEventListener('click', (e) => { if (e.target === startModal) startModal.classList.remove('show'); });
+
+  // Complete modal + warranty toggle
+  const completeModal = document.getElementById('completeModal');
+  btnComplete?.addEventListener('click', () => completeModal.classList.add('show'));
+  document.getElementById('closeComplete').addEventListener('click', () => completeModal.classList.remove('show'));
+  completeModal.addEventListener('click', (e) => { if (e.target === completeModal) completeModal.classList.remove('show'); });
+
+  const wtyToggle = document.getElementById('wtyToggle');
+  const wtyFields = document.getElementById('wtyFields');
+  wtyToggle.addEventListener('change', () => {
+    wtyFields.style.display = wtyToggle.checked ? 'block' : 'none';
+    // required only when visible
+    wtyFields.querySelectorAll('textarea,input[type="date"]').forEach(el=>{
+      if (wtyToggle.checked) el.setAttribute('required','required'); else el.removeAttribute('required');
+     });
+  });
+})();
+</script>
 </body>
 </html>

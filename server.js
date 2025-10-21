@@ -588,6 +588,126 @@ app.post(
   }
 );
 
+// Start work: sets status to In Progress, optionally updates/sets start date
+app.post(
+  "/service/:id/start",
+  express.urlencoded({ extended: true }),
+  async (req, res) => {
+    const { name, start_date } = req.body || {};
+    if (!name || !start_date) {
+      return res.status(400).send("Name and Start Date are required.");
+    }
+    try {
+      await pb.collection("service_history").update(req.params.id, {
+        status: "In Progress",
+        svc_start_date: start_date,
+      });
+
+      try {
+        const c = await pb.collection("service_comment").create({
+          comment: `Work started; start date set to ${start_date}.`,
+          service_id: req.params.id,
+          user: name,
+        });
+        await pb.collection("service_history").update(req.params.id, {
+          "comments+": [c.id],
+        });
+      } catch {}
+
+      res.redirect(`/service/${req.params.id}`);
+    } catch (e) {
+      console.error("Start failed", e);
+      res.status(500).send("Failed to set In Progress.");
+    }
+  }
+);
+
+// Complete work: optional invoice upload + optional warranty creation
+app.post(
+  "/service/:id/complete",
+  upload.single("invoice"),
+  async (req, res) => {
+    const { name, date, cost, warranty, covered, expires } = req.body || {};
+    if (!name || !date)
+      return res.status(400).send("Name and Date are required.");
+
+    try {
+      // Attach invoice if provided
+      if (req.file) {
+        const rec = await pb
+          .collection("service_history")
+          .getOne(req.params.id);
+        const existing = Array.isArray(rec.attachments)
+          ? rec.attachments
+          : rec.attachments
+          ? [rec.attachments]
+          : [];
+
+        const fd = new FormData();
+        existing.forEach((fn) => fd.append("attachments", fn));
+        fd.append(
+          "attachments",
+          new Blob([req.file.buffer]),
+          req.file.originalname
+        );
+        await pb.collection("service_history").update(req.params.id, fd);
+      }
+
+      // Optional warranty
+      let warrantyId = null;
+      if (String(warranty) === "1" && covered && expires) {
+        // read current service record to get servicer/company info
+        const rec = await pb
+          .collection("service_history")
+          .getOne(req.params.id, {
+            expand: "servicer",
+          });
+        const servicerId = rec?.servicer || "";
+        const servicerName = rec?.expand?.servicer?.name || "";
+
+        const w = await pb.collection("sys_warranty").create({
+          company_id: servicerId || "",
+          covered: covered,
+          start_date: new Date().toString(),
+          end_date: new Date(expires).toString(),
+          company: servicerName,
+          expired: false,
+        });
+        warrantyId = w.id;
+      }
+
+      // complete the service
+      const update = {
+        status: "Complete",
+        svc_end_date: date,
+      };
+      if (warrantyId) update["warranty"] = warrantyId;
+      if (cost !== undefined && cost !== "") {
+        const parsed = Number(cost);
+        if (!isNaN(parsed) && parsed >= 0) update["cost"] = parsed;
+      }
+      await pb.collection("service_history").update(req.params.id, update);
+
+      // Add system comment
+      try {
+        const c = await pb.collection("service_comment").create({
+          comment: "Vendor completed work.",
+          service_id: req.params.id,
+          user: name,
+        });
+        await pb.collection("service_history").update(req.params.id, {
+          "comments+": [c.id],
+        });
+      } catch {}
+
+      res.redirect(`/service/${req.params.id}`);
+    } catch (e) {
+      console.error("Complete failed", e);
+      res.status(500).send("Failed to complete work.");
+    }
+  }
+);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(
