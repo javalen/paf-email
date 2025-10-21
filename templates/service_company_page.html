@@ -193,10 +193,12 @@
           <label style="margin-top:10px">Upload Invoice (optional)</label>
           <input type="file" name="invoice"/>
 
-          <div class="row" style="margin-top:12px;justify-content:space-between">
-            <label style="margin:0">Warranty</label>
-            <input id="wtyToggle" type="checkbox" name="warranty" value="1" />
-          </div>
+         <!-- Warranty toggle (checkbox immediately after the word) -->
+<div class="row" style="margin-top:12px;align-items:center;gap:8px">
+  <label for="wtyToggle" style="margin:0">Warranty</label>
+  <input id="wtyToggle" type="checkbox" name="warranty" value="1" />
+</div>
+
 
           <div id="wtyFields" style="display:none">
             <label>Covered under this warranty</label>
