@@ -44,13 +44,14 @@ function buildServiceRecordView(rec) {
     ? [rec.attachments]
     : [];
 
-  // clean description braces + line breaks
+  // strip a single pair of wrapping braces, then convert newlines
   let rawDesc = String(rec.desc || "").trim();
   if (rawDesc.startsWith("{") && rawDesc.endsWith("}")) {
     rawDesc = rawDesc.slice(1, -1).trim();
   }
-  const descHtml = rawDesc.replace(/\n/g, "<br/>");
+  const descHtml = esc(rawDesc).replace(/\n/g, "<br/>");
 
+  // attachments HTML
   const filesHtml = files.length
     ? `<ul>${files
         .map(
@@ -60,17 +61,44 @@ function buildServiceRecordView(rec) {
               rec.collectionId,
               rec.id,
               f
-            )}" target="_blank" rel="noopener">${f}</a></li>`
+            )}" target="_blank" rel="noopener">${esc(f)}</a></li>`
         )
         .join("")}</ul>`
     : `<div class="small muted">No files attached.</div>`;
 
+  function esc(s = "") {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  // comments HTML (from expanded comments)
+  const comments = Array.isArray(rec.expand?.comments)
+    ? rec.expand.comments
+        .slice()
+        .sort((a, b) => new Date(a.created) - new Date(b.created))
+    : [];
+
+  const commentsHtml =
+    comments.length === 0
+      ? `<div class="small muted">No comments yet.</div>`
+      : comments
+          .map(
+            (c) => `
+    <div class="cmt">
+      <div class="cmt-h"><span>${esc(c.user || "—")}</span><span>${fmtD(
+              c.created
+            )}</span></div>
+      <div class="cmt-b">${esc(c.comment || "")}</div>
+    </div>`
+          )
+          .join("");
+
   return {
     id: rec.id,
-    // 🔽 THIS WAS MISSING — drives the Accept/Start/Complete toggle in the template
-    accepted: !!rec.accepted,
-    status: rec.status || "New",
-
+    accepted: !!rec.accepted, // <<< needed for UI logic
+    status: rec.status || "New", // ensure status present
     createdPretty: fmtD(rec.created),
     facility: {
       name: fac.name || "—",
@@ -94,6 +122,7 @@ function buildServiceRecordView(rec) {
     service_type: rec.service_type || "—",
     systemName: sys.name || rec.service_for || "—",
     filesHtml,
+    commentsHtml, // <<< rendered comments
   };
 }
 
@@ -495,7 +524,8 @@ app.post("/email-service-co", async (req, res) => {
 app.get("/service/:id", async (req, res) => {
   try {
     const rec = await pb.collection("service_history").getOne(req.params.id, {
-      expand: "facility,servicer,system",
+      // expand comments so they can be displayed
+      expand: "facility,servicer,system,comments",
     });
     const view = buildServiceRecordView(rec);
     const html = renderTemplate("service_company_page.html", { ...view });

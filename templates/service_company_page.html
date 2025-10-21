@@ -5,41 +5,42 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Service Request {{reqNumber}}</title>
 <style>
-  :root {
-    --card-bg:#fff; --card-br:#e5e7eb; --muted:#6b7280; --ink:#1f2937;
-    --btn:#0f766e; --btn-h:#0a5c56; --btn-2:#1f2937; --btn-2h:#111827;
-    --ok:#16a34a; --ok-h:#15803d; --blue:#2563eb; --blue-h:#1d4ed8;
+  :root{
+    --card-bg:#fff;--card-br:#e5e7eb;--muted:#6b7280;--ink:#1f2937;
+    --btn:#0f766e;--btn-h:#0a5c56;--btn-2:#1f2937;--btn-2h:#111827;
+    --ok:#16a34a;--ok-h:#15803d;--blue:#2563eb;--blue-h:#1d4ed8;
   }
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7fb;margin:0;padding:0;color:var(--ink);}
-  .wrap{max-width:880px;margin:24px auto;padding:16px;}
-  .card{background:var(--card-bg);border:1px solid var(--card-br);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:18px;margin-bottom:14px;}
-  h1{font-size:18px;margin:0 0 2px;}
-  h2{font-size:16px;margin:0 0 10px;}
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7fb;margin:0;padding:0;color:var(--ink)}
+  .wrap{max-width:880px;margin:24px auto;padding:16px}
+  .card{background:var(--card-bg);border:1px solid var(--card-br);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:18px;margin-bottom:14px}
+  h1{font-size:18px;margin:0 0 2px} h2{font-size:16px;margin:0 0 10px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .muted{color:var(--muted)}
+  .muted{color:var(--muted)} .small{font-size:12px}
   label{font-size:12px;color:#374151;display:block;margin:8px 0 6px}
   input,textarea,select{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font:inherit}
   textarea{min-height:96px}
-  .row{display:flex;gap:10px;align-items:center}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .btn{appearance:none;border:0;background:var(--btn);color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
   .btn:hover{background:var(--btn-h)}
-  .btn.secondary{background:var(--btn-2)}
-  .btn.secondary:hover{background:var(--btn-2h)}
-  .btn.ok{background:var(--ok)}
-  .btn.ok:hover{background:var(--ok-h)}
-  .btn.blue{background:var(--blue)}
-  .btn.blue:hover{background:var(--blue-h)}
+  .btn.secondary{background:var(--btn-2)} .btn.secondary:hover{background:var(--btn-2h)}
+  .btn.ok{background:var(--ok)} .btn.ok:hover{background:var(--ok-h)}
+  .btn.blue{background:var(--blue)} .btn.blue:hover{background:var(--blue-h)}
   .btn:disabled{opacity:.6;cursor:not-allowed}
   .files{padding-left:18px}
   .hint{font-size:12px;color:#6b7280;margin-top:4px}
-  .small{font-size:12px}
+
+  /* comments */
+  .cmt{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin:8px 0}
+  .cmt-h{display:flex;justify-content:space-between;font-size:12px;color:#374151;margin-bottom:6px}
+  .cmt-b{font-size:14px;color:#111}
 
   /* modal */
-  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:40}
-  .modal{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);width:min(92vw,520px);overflow:hidden}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:40;padding:16px}
+  .modal{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);width:min(92vw,560px);overflow:hidden}
   .modal-h{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;padding:10px 14px}
-  .modal-b{padding:14px}
-  .modal-backdrop.show{display:flex}
+  .modal-b{padding:14px 16px} /* extra right padding */
+  .modal.show{display:flex}
 </style>
 </head>
 <body data-accepted="{{accepted}}" data-status="{{status}}" data-id="{{id}}">
@@ -69,7 +70,6 @@
 
       <div style="margin-top:12px">
         <h2>Description</h2>
-        <!-- no braces, render as HTML that we already sanitized -->
         <div>{{descHtml}}</div>
       </div>
 
@@ -117,7 +117,7 @@
     <!-- Attachments -->
     <div class="card">
       <h2>Attach File</h2>
-      <form action="/service/{{id}}/upload" method="POST" enctype="multipart/form-data" class="row" style="flex-wrap:wrap;gap:8px">
+      <form action="/service/{{id}}/upload" method="POST" enctype="multipart/form-data" class="row" style="gap:8px">
         <input type="file" name="file" required/>
         <input type="text" name="rename" placeholder="Rename (optional: e.g. estimate.pdf)"/>
         <button class="btn secondary" type="submit">Upload</button>
@@ -125,14 +125,17 @@
       <div class="hint">Images/PDFs are attached to this request in PredictiveAF.</div>
       <div style="margin-top:10px">
         <div class="muted small">Files:</div>
-        <!-- no braces showing literally; we inject ready-to-render HTML -->
         {{filesHtml}}
       </div>
     </div>
 
     <!-- Comments -->
     <div class="card">
-      <h2>Add a Comment</h2>
+      <h2>Comments</h2>
+      <div id="commentsList">
+        {{commentsHtml}}
+      </div>
+      <h2 style="margin-top:12px">Add a Comment</h2>
       <form action="/service/{{id}}/comment" method="POST">
         <label>Comment *</label>
         <textarea name="comment" required></textarea>
@@ -190,9 +193,9 @@
           <label style="margin-top:10px">Upload Invoice (optional)</label>
           <input type="file" name="invoice"/>
 
-          <div class="row" style="margin-top:12px">
-            <input id="wtyToggle" type="checkbox" name="warranty" value="1"/>
-            <label for="wtyToggle" style="margin:0">Warranty</label>
+          <div class="row" style="margin-top:12px;justify-content:space-between">
+            <label style="margin:0">Warranty</label>
+            <input id="wtyToggle" type="checkbox" name="warranty" value="1" />
           </div>
 
           <div id="wtyFields" style="display:none">
@@ -249,10 +252,9 @@
   const wtyFields = document.getElementById('wtyFields');
   wtyToggle.addEventListener('change', () => {
     wtyFields.style.display = wtyToggle.checked ? 'block' : 'none';
-    // required only when visible
     wtyFields.querySelectorAll('textarea,input[type="date"]').forEach(el=>{
       if (wtyToggle.checked) el.setAttribute('required','required'); else el.removeAttribute('required');
-     });
+    });
   });
 })();
 </script>
