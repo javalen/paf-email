@@ -763,6 +763,37 @@ app.post(
   }
 );
 
+app.post("/api/reset-by-id/:id", express.json(), async (req, res) => {
+  const { id } = req.params;
+  const { password } = req.body;
+  if (!password || password.length < 8) {
+    return res
+      .status(400)
+      .json({ error: "Password must be at least 8 chars." });
+  }
+
+  try {
+    // Admin auth — uses env creds; make sure these exist
+    await pb.admins.authWithPassword(
+      process.env.PB_ADMIN_EMAIL,
+      process.env.PB_ADMIN_PASS
+    );
+
+    await pb.collection("users").update(id, {
+      password,
+      passwordConfirm: password,
+    });
+
+    // (Optional) Invalidate admin session afterwards
+    pb.authStore.clear();
+
+    return res.status(204).end();
+  } catch (e) {
+    console.error("reset-by-id failed", e);
+    return res.status(400).json({ error: "Invalid or expired reset link." });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(
