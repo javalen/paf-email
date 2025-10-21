@@ -387,6 +387,29 @@ app.post("/send-new-user-email", async (req, res) => {
   }
 });
 
+/** -----------------------
+ * Change Password
+ * ---------------------- */
+app.post("/change-password", async (req, res) => {
+  try {
+    const { to, name, newUserId } = req.body;
+    const verificationLink = `${process.env.PAF_PANEL_HOST}/fpw/${newUserId}`;
+    await sendHtmlEmail(
+      to,
+      "Change Password request for PredictiveAF!",
+      "change_password.html",
+      {
+        name,
+        verificationLink,
+        PAF_FB_PAGE: process.env.PAF_FB_PAGE,
+      }
+    );
+    res.status(200).send("Email sent");
+  } catch (e) {
+    res.status(500).send(e.toString());
+  }
+});
+
 app.post("/send-new-admin-email", async (req, res) => {
   try {
     const { client, to, name, addedBy, newUserId } = req.body;
