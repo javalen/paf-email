@@ -774,10 +774,9 @@ app.post("/api/reset-by-id/:id", express.json(), async (req, res) => {
 
   try {
     // Admin auth — uses env creds; make sure these exist
-    await pb.admins.authWithPassword(
-      process.env.PB_ADMIN_EMAIL,
-      process.env.PB_ADMIN_PASS
-    );
+    await pb
+      .collection("_superusers")
+      .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
 
     await pb.collection("users").update(id, {
       password,
