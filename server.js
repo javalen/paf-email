@@ -564,14 +564,10 @@ app.post("/update-document", async (req, res) => {
   console.log("Received a request");
   try {
     // Body can be either { documentId } or { document: { id: ... } }
-    const {
-      documentId,
-      document: docFromBody,
-      facilityName,
-      to,
-    } = req.body || {};
+    const { id, document: docFromBody, facilityName, to } = req.body || {};
     //console.log("documentId", documentId, "TO:", document.contact_email);
-    const id = docFromBody?.id || documentId;
+    //const id = docFromBody?.id || documentId;
+    console.log("ID", id);
     if (!id) {
       return res.status(400).send("Missing document id.");
     }
