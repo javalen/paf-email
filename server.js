@@ -570,7 +570,7 @@ app.post("/update-document", async (req, res) => {
       facilityName,
       to,
     } = req.body || {};
-    console.log("documentId", documentId, "TO:", document.contact_email);
+    //console.log("documentId", documentId, "TO:", document.contact_email);
     const id = docFromBody?.id || documentId;
     if (!id) {
       return res.status(400).send("Missing document id.");
@@ -581,6 +581,7 @@ app.post("/update-document", async (req, res) => {
       expand: "facility",
     });
 
+    console.log("documentId", documentId, "TO:", doc.contact_email);
     const facility = doc.expand?.facility || {};
     const facilityLabel = facility.name || facilityName || "your facility";
 
