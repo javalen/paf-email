@@ -730,7 +730,7 @@ app.post(
 
       fd.append("file", new Blob([req.file.buffer]), finalName);
 
-      const newDoc = await pb.collection("facility_document").create(fd);
+      const newDoc = await pb.collection("facility_documents").create(fd);
 
       // 3) Update facility_doc_def documents relation
       const currentIds = Array.isArray(docDef.documents)
@@ -747,10 +747,10 @@ app.post(
         // archive old, replace with new
         try {
           await pb
-            .collection("facility_document")
+            .collection("facility_documents")
             .update(originalDoc.id, { archived: true });
         } catch (e) {
-          console.error("Failed to archive original facility_document", e);
+          console.error("Failed to archive original facility_documents", e);
         }
 
         await pb
