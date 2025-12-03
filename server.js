@@ -634,9 +634,11 @@ app.post("/update-document", async (req, res) => {
 // Public mini-console page for uploading document (shows the form)
 app.get("/document-update/:id", async (req, res) => {
   try {
-    const doc = await pb.collection("facility_document").getOne(req.params.id, {
-      expand: "facility",
-    });
+    const doc = await pb
+      .collection("facility_documents")
+      .getOne(req.params.id, {
+        expand: "facility",
+      });
 
     const facility = doc.expand?.facility || {};
     const fileUrl = doc.file
