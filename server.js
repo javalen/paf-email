@@ -561,6 +561,7 @@ app.get("/service/:id", async (req, res) => {
 
 // Public mini-console email trigger for document update
 app.post("/update-document", async (req, res) => {
+  console.log("Received a request");
   try {
     // Body can be either { documentId } or { document: { id: ... } }
     const {
@@ -569,7 +570,7 @@ app.post("/update-document", async (req, res) => {
       facilityName,
       to,
     } = req.body || {};
-
+    console.log("documentId", documentId, "TO:", document.contact_email);
     const id = docFromBody?.id || documentId;
     if (!id) {
       return res.status(400).send("Missing document id.");
@@ -596,6 +597,7 @@ app.post("/update-document", async (req, res) => {
       process.env.PAF_MAIL_HOST?.replace(/\/$/, "") || ""
     }/document-update/${doc.id}`;
 
+    console.log("pageUrl", pageUrl);
     // Use the existing template; it expects {{document}}, {{facility}}, {{id}}, {{filesHtml}}
     const html = renderTemplate("document_upload.html", {
       document: doc,
@@ -605,11 +607,7 @@ app.post("/update-document", async (req, res) => {
       pageUrl,
     });
 
-    const dest =
-      to ||
-      doc.contact_email ||
-      process.env.FALLBACK_SERVICE_EMAIL ||
-      process.env.TRANSPORT_USER;
+    const dest = to || doc.contact_email;
 
     if (!dest) {
       return res
@@ -627,6 +625,7 @@ app.post("/update-document", async (req, res) => {
     });
 
     res.status(200).send("Document update email sent.");
+    console.log("Alldone with update-document");
   } catch (err) {
     console.error("update-document failed", err);
     res.status(500).send("Internal error sending document email.");
