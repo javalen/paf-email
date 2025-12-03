@@ -682,6 +682,8 @@ app.post(
         return res.status(400).send("Missing file.");
       }
 
+      console.log("body --->", req.body);
+
       // 1) Get the original facility_document and its doc_def
       const originalDoc = await pb
         .collection("facility_documents")
@@ -695,7 +697,26 @@ app.post(
 
       // 2) Save the new document to facility_document
       const fd = new FormData();
+      // // reset reminder-related flags on the new doc
+      // fd.append("expires_soon", "false");
+      // fd.append("archived", "false");
+      // fd.append("reminder_sent", "false");
+      // fd.append("reminder_date", "");
 
+      // if (docDef.multiple_allowed) {
+      //   //Archive the original file
+      //   await pb
+      //     .collection("facility_documents")
+      //     .update(originalDoc.id, { archived: true });
+
+      //   // Create the new file
+      //   fd.append
+      // } else {
+      //   // Delete the original
+      //   await pb.collection("facility_documents").delete(originalDoc.id);
+
+      //   // Create the new file
+      // }
       // basic fields copied forward; adjust as needed
       fd.append("name", originalDoc.name || "");
       if (originalDoc.effective_date)
