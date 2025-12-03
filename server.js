@@ -575,7 +575,7 @@ app.post("/update-document", async (req, res) => {
     }
 
     // Always re-load from PB so we have collectionId + expand
-    const doc = await pb.collection("facility_document").getOne(id, {
+    const doc = await pb.collection("facility_documents").getOne(id, {
       expand: "facility",
     });
 
