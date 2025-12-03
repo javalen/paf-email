@@ -559,6 +559,233 @@ app.get("/service/:id", async (req, res) => {
   }
 });
 
+// Public mini-console email trigger for document update
+app.post("/update-document", async (req, res) => {
+  try {
+    // Body can be either { documentId } or { document: { id: ... } }
+    const {
+      documentId,
+      document: docFromBody,
+      facilityName,
+      to,
+    } = req.body || {};
+
+    const id = docFromBody?.id || documentId;
+    if (!id) {
+      return res.status(400).send("Missing document id.");
+    }
+
+    // Always re-load from PB so we have collectionId + expand
+    const doc = await pb.collection("facility_document").getOne(id, {
+      expand: "facility",
+    });
+
+    const facility = doc.expand?.facility || {};
+    const facilityLabel = facility.name || facilityName || "your facility";
+
+    const fileUrl = doc.file
+      ? pbFileUrl(process.env.PB_HOST, doc.collectionId, doc.id, doc.file)
+      : null;
+
+    const filesHtml = fileUrl
+      ? `<ul><li><a href="${fileUrl}" target="_blank" rel="noopener">${doc.file}</a></li></ul>`
+      : `<div class="small muted">No file attached.</div>`;
+
+    // Link to the mini-console page
+    const pageUrl = `${
+      process.env.PAF_MAIL_HOST?.replace(/\/$/, "") || ""
+    }/document-update/${doc.id}`;
+
+    // Use the existing template; it expects {{document}}, {{facility}}, {{id}}, {{filesHtml}}
+    const html = renderTemplate("document_upload.html", {
+      document: doc,
+      facility: { name: facilityLabel },
+      id: doc.id,
+      filesHtml,
+      pageUrl,
+    });
+
+    const dest =
+      to ||
+      doc.contact_email ||
+      process.env.FALLBACK_SERVICE_EMAIL ||
+      process.env.TRANSPORT_USER;
+
+    if (!dest) {
+      return res
+        .status(500)
+        .send(
+          "No destination email (contact_email or explicit 'to' required)."
+        );
+    }
+
+    await transporter.sendMail({
+      from: "support@predictiveaf.com",
+      to: dest,
+      subject: `Document ${doc.name} for ${facilityLabel} is expiring soon`,
+      html,
+    });
+
+    res.status(200).send("Document update email sent.");
+  } catch (err) {
+    console.error("update-document failed", err);
+    res.status(500).send("Internal error sending document email.");
+  }
+});
+
+// Public mini-console page for uploading document (shows the form)
+app.get("/document-update/:id", async (req, res) => {
+  try {
+    const doc = await pb.collection("facility_document").getOne(req.params.id, {
+      expand: "facility",
+    });
+
+    const facility = doc.expand?.facility || {};
+    const fileUrl = doc.file
+      ? pbFileUrl(process.env.PB_HOST, doc.collectionId, doc.id, doc.file)
+      : null;
+
+    const filesHtml = fileUrl
+      ? `<ul><li><a href="${fileUrl}" target="_blank" rel="noopener">${doc.file}</a></li></ul>`
+      : `<div class="small muted">No file attached.</div>`;
+
+    const html = renderTemplate("document_upload.html", {
+      document: doc,
+      facility,
+      id: doc.id,
+      filesHtml,
+    });
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.status(200).send(html);
+  } catch (err) {
+    console.error("document-update page failed", err);
+    res.status(404).send("Document not found.");
+  }
+});
+
+/**
+ * Handles the actual file upload + doc_def linking.
+ * This matches the form action: /documentsvc/{{id}}/upload
+ */
+app.post(
+  "/documentsvc/:id/upload",
+  upload.single("file"),
+  express.urlencoded({ extended: true }),
+  async (req, res) => {
+    try {
+      const originalId = req.params.id;
+
+      if (!req.file) {
+        return res.status(400).send("Missing file.");
+      }
+
+      // 1) Get the original facility_document and its doc_def
+      const originalDoc = await pb
+        .collection("facility_document")
+        .getOne(originalId);
+
+      const docDef = await pb
+        .collection("facility_doc_def")
+        .getFirstListItem(`documents.id="${originalId}"`, {
+          expand: "documents",
+        });
+
+      // 2) Save the new document to facility_document
+      const fd = new FormData();
+
+      // basic fields copied forward; adjust as needed
+      fd.append("name", originalDoc.name || "");
+      if (originalDoc.effective_date)
+        fd.append("effective_date", originalDoc.effective_date);
+      if (originalDoc.expire_date)
+        fd.append("expire_date", originalDoc.expire_date);
+      if (originalDoc.contact_name)
+        fd.append("contact_name", originalDoc.contact_name);
+      if (originalDoc.contact_number)
+        fd.append("contact_number", originalDoc.contact_number);
+      if (originalDoc.contact_email)
+        fd.append("contact_email", originalDoc.contact_email);
+      if (originalDoc.facility) fd.append("facility", originalDoc.facility);
+      if (originalDoc.client_id) fd.append("client_id", originalDoc.client_id);
+
+      // reset reminder-related flags on the new doc
+      fd.append("expires_soon", "false");
+      fd.append("archived", "false");
+      fd.append("reminder_sent", "false");
+      fd.append("reminder_date", "");
+
+      // handle optional rename from the form
+      const desiredName = (req.body?.rename || "").trim();
+      const safeBase = desiredName.replace(/[\\/:*?"<>|]+/g, "_").trim();
+      const ext = path.extname(req.file.originalname);
+      const finalName =
+        safeBase.length > 0
+          ? safeBase.toLowerCase().endsWith(ext.toLowerCase())
+            ? safeBase
+            : `${safeBase}${ext}`
+          : req.file.originalname;
+
+      fd.append("file", new Blob([req.file.buffer]), finalName);
+
+      const newDoc = await pb.collection("facility_document").create(fd);
+
+      // 3) Update facility_doc_def documents relation
+      const currentIds = Array.isArray(docDef.documents)
+        ? [...docDef.documents]
+        : [];
+
+      if (docDef.multiple_allowed) {
+        // add new document alongside existing
+        currentIds.push(newDoc.id);
+        await pb
+          .collection("facility_doc_def")
+          .update(docDef.id, { documents: currentIds });
+      } else {
+        // archive old, replace with new
+        try {
+          await pb
+            .collection("facility_document")
+            .update(originalDoc.id, { archived: true });
+        } catch (e) {
+          console.error("Failed to archive original facility_document", e);
+        }
+
+        await pb
+          .collection("facility_doc_def")
+          .update(docDef.id, { documents: [newDoc.id] });
+      }
+
+      // 4) Present success message
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.status(200).send(`
+        <html>
+          <head>
+            <meta charset="utf-8"/>
+            <title>Document Updated</title>
+            <style>
+              body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#f3f4f6; padding:40px; }
+              .card { max-width:640px; margin:0 auto; background:#fff; border-radius:8px; padding:24px; box-shadow:0 10px 30px rgba(15,23,42,0.15); }
+              h1 { font-size:20px; margin-bottom:12px; }
+              p { font-size:14px; color:#4b5563; }
+              a.btn { display:inline-block; margin-top:16px; padding:8px 16px; border-radius:6px; background:#0f766e; color:#fff; text-decoration:none; font-size:14px; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <h1>Thank you! Your document has been uploaded.</h1>
+              <p>You can safely close this window.</p>
+            </div>
+          </body>
+        </html>
+      `);
+    } catch (err) {
+      console.error("documentsvc upload failed", err);
+      res.status(500).send("Failed to upload document.");
+    }
+  }
+);
+
 // Accept request
 app.post(
   "/service/:id/accept",
