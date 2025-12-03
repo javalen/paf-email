@@ -1,16 +1,5 @@
-<div class="wrap">
-<div class="card">
-<div class="row" style="justify-content: space-between;">
-<h1>Your document {{document.name}} for {{facility.name}} expires on {{document.expire_date}}. Please upload a new file to stay compliant.</h1>
-<!-- Attachments -->
-<div class="card">
-<h2>Attach File</h2>
-<form class="row" style="gap: 8px;" action="/documentsvc/{{id}}/upload" enctype="multipart/form-data" method="POST"><input name="file" required="" type="file" /> <input name="rename" type="text" placeholder="Rename (optional: e.g. estimate.pdf)" /> <button class="btn secondary" type="submit">Upload</button></form>
-<div class="hint">Files</div>
-<div style="margin-top: 10px;">
-<div class="muted small">Files:</div>
-{{filesHtml}}</div>
-</div>
-</div>
-</div>
+<div style="font-family: Arial,Helvetica,sans-serif; color: #111; line-height: 1.45; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 8px 24px rgba(17,24,39,.06); padding: 20px;">
+<h2 style="margin: 0 0 8px; font-size: 20px;">Your document {{document.name}} for {{fa cility.name}} expires on {{document.expire_date}}. Please upload a new file to stay compliant.</h2>
+<div style="font-weight: bold; margin-bottom: 6px;">Please click the button below to update the file</div>
+<div style="margin: 16px 0;"><a style="display: inline-block; background: #0f766e; color: #ffffff; text-decoration: none; padding: 12px 18px; border-radius: 10px; font-weight: 600; box-shadow: 0 4px 12px rgba(15,118,110,.2);" href="{{pageUrl}}">Update Document</a></div>
 </div>
