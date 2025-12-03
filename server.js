@@ -564,7 +564,8 @@ app.post("/update-document", async (req, res) => {
   console.log("Received a request");
   try {
     // Body can be either { documentId } or { document: { id: ... } }
-    const { id, document: docFromBody, facilityName, to } = req.body || {};
+    const { document: docFromBody, facilityName, to } = req.body || {};
+    const id = req.body.id;
     //console.log("documentId", documentId, "TO:", document.contact_email);
     //const id = docFromBody?.id || documentId;
     console.log("ID", req.body || {}, id);
