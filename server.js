@@ -565,7 +565,7 @@ app.post("/update-document", async (req, res) => {
   try {
     // Body can be either { documentId } or { document: { id: ... } }
     const { document: docFromBody, facilityName, to } = req.body || {};
-    const id = req.body.id;
+    const id = req.body.record.id;
     //console.log("documentId", documentId, "TO:", document.contact_email);
     //const id = docFromBody?.id || documentId;
     console.log("ID", req.body || {}, id);
