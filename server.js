@@ -697,86 +697,65 @@ app.post(
 
       // 2) Save the new document to facility_document
       const fd = new FormData();
-      // // reset reminder-related flags on the new doc
-      // fd.append("expires_soon", "false");
-      // fd.append("archived", "false");
-      // fd.append("reminder_sent", "false");
-      // fd.append("reminder_date", "");
-
-      // if (docDef.multiple_allowed) {
-      //   //Archive the original file
-      //   await pb
-      //     .collection("facility_documents")
-      //     .update(originalDoc.id, { archived: true });
-
-      //   // Create the new file
-      //   fd.append
-      // } else {
-      //   // Delete the original
-      //   await pb.collection("facility_documents").delete(originalDoc.id);
-
-      //   // Create the new file
-      // }
-      // basic fields copied forward; adjust as needed
-      fd.append("name", originalDoc.name || "");
-      if (originalDoc.effective_date)
-        fd.append("effective_date", originalDoc.effective_date);
-      if (originalDoc.expire_date)
-        fd.append("expire_date", originalDoc.expire_date);
-      if (originalDoc.contact_name)
-        fd.append("contact_name", originalDoc.contact_name);
-      if (originalDoc.contact_number)
-        fd.append("contact_number", originalDoc.contact_number);
-      if (originalDoc.contact_email)
-        fd.append("contact_email", originalDoc.contact_email);
-      if (originalDoc.facility) fd.append("facility", originalDoc.facility);
-      if (originalDoc.client_id) fd.append("client_id", originalDoc.client_id);
-
       // reset reminder-related flags on the new doc
       fd.append("expires_soon", "false");
       fd.append("archived", "false");
       fd.append("reminder_sent", "false");
       fd.append("reminder_date", "");
+      // Create the new file
+      if (req.body?.rename) {
+        const desiredName = (req.body?.rename || "").trim();
+        const safeBase = desiredName.replace(/[\\/:*?"<>|]+/g, "_").trim();
+        fd.append("file", new Blob([req.file.buffer]), safeBase);
+      } else {
+        fd.append("file", new Blob([req.file.buffer]), originalDoc.name);
+      }
 
-      // handle optional rename from the form
-      const desiredName = (req.body?.rename || "").trim();
-      const safeBase = desiredName.replace(/[\\/:*?"<>|]+/g, "_").trim();
-      const ext = path.extname(req.file.originalname);
-      const finalName =
-        safeBase.length > 0
-          ? safeBase.toLowerCase().endsWith(ext.toLowerCase())
-            ? safeBase
-            : `${safeBase}${ext}`
-          : req.file.originalname;
-
-      fd.append("file", new Blob([req.file.buffer]), finalName);
-
-      const newDoc = await pb.collection("facility_documents").create(fd);
-
-      // 3) Update facility_doc_def documents relation
-      const currentIds = Array.isArray(docDef.documents)
-        ? [...docDef.documents]
-        : [];
+      fd.append("contact_name", req.body.contact_name);
+      fd.append("contact_email", req.body.contact_email);
+      fd.append("contact_number", req.body.contact_number);
+      fd.append("expire_date", req.body.expire_date);
+      fd.append("effective_date", new Date().toISOString());
+      fd.append("facility", originalDoc.facility);
+      fd.append("client_id", originalDoc.client_id);
 
       if (docDef.multiple_allowed) {
-        // add new document alongside existing
-        currentIds.push(newDoc.id);
+        console.log("Adding new doc as multiple");
+        //Archive the original file
         await pb
-          .collection("facility_doc_def")
-          .update(docDef.id, { documents: currentIds });
-      } else {
-        // archive old, replace with new
-        try {
-          await pb
-            .collection("facility_documents")
-            .update(originalDoc.id, { archived: true });
-        } catch (e) {
-          console.error("Failed to archive original facility_documents", e);
+          .collection("facility_documents")
+          .update(originalDoc.id, { archived: true });
+
+        // Create the new file
+        if (req.body?.rename) {
+          const desiredName = (req.body?.rename || "").trim();
+          const safeBase = desiredName.replace(/[\\/:*?"<>|]+/g, "_").trim();
+          fd.append("file", new Blob([req.file.buffer]), safeBase);
+        } else {
+          fd.append("file", new Blob([req.file.buffer]), originalDoc.name);
         }
 
+        //Create the new document
+        const newDoc = await pb.collection("facility_documents").create(fd);
+
+        //Update the doc_def
         await pb
           .collection("facility_doc_def")
-          .update(docDef.id, { documents: [newDoc.id] });
+          .update(docDef.id, { "+documents": newDoc.id });
+      } else {
+        console.log("Deleting original");
+        // Delete the original
+        await pb.collection("facility_documents").delete(originalDoc.id);
+
+        console.log("creating new");
+        // Create the new file
+        const newDoc = await pb.collection("facility_documents").create(fd);
+
+        console.log("Adding to doc_def");
+        //Update the doc_def
+        await pb
+          .collection("facility_doc_def")
+          .update(docDef.id, { "+documents": newDoc.id });
       }
 
       // 4) Present success message
