@@ -706,6 +706,7 @@ app.post(
       if (req.body?.rename) {
         const desiredName = (req.body?.rename || "").trim();
         const safeBase = desiredName.replace(/[\\/:*?"<>|]+/g, "_").trim();
+        console.log("New file name", safeBase);
         fd.append("file", new Blob([req.file.buffer]), safeBase);
       } else {
         fd.append("file", new Blob([req.file.buffer]), originalDoc.name);
