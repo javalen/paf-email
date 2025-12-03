@@ -684,7 +684,7 @@ app.post(
 
       // 1) Get the original facility_document and its doc_def
       const originalDoc = await pb
-        .collection("facility_document")
+        .collection("facility_documents")
         .getOne(originalId);
 
       const docDef = await pb
