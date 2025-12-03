@@ -1,0 +1,165 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Update Document </title>
+<style>
+  :root{
+    --card-bg:#fff;--card-br:#e5e7eb;--muted:#6b7280;--ink:#1f2937;
+    --btn:#0f766e;--btn-h:#0a5c56;--btn-2:#1f2937;--btn-2h:#111827;
+    --ok:#16a34a;--ok-h:#15803d;--blue:#2563eb;--blue-h:#1d4ed8;
+  }
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7fb;margin:0;padding:0;color:var(--ink)}
+  .wrap{max-width:880px;margin:24px auto;padding:16px}
+  .card{background:var(--card-bg);border:1px solid var(--card-br);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:18px;margin-bottom:14px}
+  h1{font-size:18px;margin:0 0 2px} h2{font-size:16px;margin:0 0 10px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .muted{color:var(--muted)} .small{font-size:12px}
+  label{font-size:12px;color:#374151;display:block;margin:8px 0 6px}
+  input,textarea,select{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font:inherit}
+  textarea{min-height:96px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .btn{appearance:none;border:0;background:var(--btn);color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
+  .btn:hover{background:var(--btn-h)}
+  .btn.secondary{background:var(--btn-2)} .btn.secondary:hover{background:var(--btn-2h)}
+  .btn.ok{background:var(--ok)} .btn.ok:hover{background:var(--ok-h)}
+  .btn.blue{background:var(--blue)} .btn.blue:hover{background:var(--blue-h)}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .files{padding-left:18px}
+  .hint{font-size:12px;color:#6b7280;margin-top:4px}
+
+  /* comments */
+  .cmt{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin:8px 0}
+  .cmt-h{display:flex;justify-content:space-between;font-size:12px;color:#374151;margin-bottom:6px}
+  .cmt-b{font-size:14px;color:#111}
+
+  /* modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:40;padding:16px}
+  .modal{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);width:min(92vw,560px);overflow:hidden}
+  .modal-h{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;padding:10px 14px}
+  .modal-b{padding:14px 16px} /* extra right padding */
+  .modal-backdrop.show{display:flex}
+</style>
+</head>
+<body data-accepted="{{accepted}}" data-status="{{status}}" data-id="{{id}}">
+  <div class="wrap">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h1>Update Document</h1>
+        <div class="muted small">Created: {{createdPretty}}</div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <h2>Facility</h2>
+          <div><strong>{{facility.name}}</strong></div>
+        </div>
+        <div>
+          <h2>Document Details</h2>
+          <div><strong>{{document.name}}</strong></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <h2>Description</h2>
+        <div>Your document has expired or will expire on {{expirePretty}}</div>
+      </div>
+
+    </div>
+
+    <!-- Accept card (hidden once accepted) -->
+    <div class="card" id="acceptCard">
+      <h2>Upload New Document</h2>
+      <form class="grid" action="/service/{{id}}/accept" method="POST">
+        <div>
+          <label>Your Name *</label>
+          <input name="name" required placeholder="Your name"/>
+        </div>
+        <div>
+          <label>Phone Number *</label>
+          <input name="name" required placeholder="Your name"/>
+        </div>
+        <div>
+          <label>Email *</label>
+          <input name="name" required placeholder="Your name"/>
+        </div>
+        <div>
+          <label>Expiration Date *</label>
+          <input type="date" name="start_date" required/>
+        </div>
+        <h2>Attach File</h2>
+      <form action="/service/{{id}}/upload" method="POST" enctype="multipart/form-data" class="row" style="gap:8px">
+        <input type="file" name="file" required/>
+        <input type="text" name="rename" placeholder="Rename (optional: e.g. estimate.pdf)"/>
+        <button class="btn secondary" type="submit">Upload</button>
+      </form>
+    <div style="margin-top:10px">
+        <div class="muted small">Original File:</div>
+        {{filesHtml}}
+      </div>
+      
+        <div style="margin-top:10px">
+          <button class="btn" type="submit">Save Document</button>
+        </div>
+      </form>
+      <div class="hint"></div>
+    </div>
+
+    <!-- Start/Complete action card (visible after acceptance) -->
+    <div class="card" id="actionsCard" style="display:none">
+      <h2>Next Actions</h2>
+      <div class="row" style="gap:8px">
+        <button class="btn blue" id="btnStart">Start Working</button>
+        <button class="btn ok" id="btnComplete" style="display:none">Work Complete</button>
+      </div>
+      <div class="hint">“Start Working” sets the status to <em>In Progress</em>. “Work Complete” records completion details.</div>
+    </div>
+<script>
+(function(){
+  const root = document.body;
+  const accepted = (root.dataset.accepted || '').toLowerCase() === 'true';
+  const status = (root.dataset.status || '').trim();
+  const acceptCard = document.getElementById('acceptCard');
+  const actionsCard = document.getElementById('actionsCard');
+  const btnStart = document.getElementById('btnStart');
+  const btnComplete = document.getElementById('btnComplete');
+
+  // Show/hide blocks based on accepted/status
+  if (accepted) {
+    acceptCard.style.display = 'none';
+    actionsCard.style.display = 'block';
+    if (status === 'In Progress') {
+      btnStart.style.display = 'none';
+      btnComplete.style.display = 'inline-block';
+    } else {
+      btnStart.style.display = 'inline-block';
+      btnComplete.style.display = 'none';
+    }
+  }
+
+  // Start modal
+  const startModal = document.getElementById('startModal');
+  btnStart?.addEventListener('click', () => startModal.classList.add('show'));
+  document.getElementById('closeStart').addEventListener('click', () => startModal.classList.remove('show'));
+  startModal.addEventListener('click', (e) => { if (e.target === startModal) startModal.classList.remove('show'); });
+
+  // Complete modal + warranty toggle
+  const completeModal = document.getElementById('completeModal');
+  btnComplete?.addEventListener('click', () => completeModal.classList.add('show'));
+  document.getElementById('closeComplete').addEventListener('click', () => completeModal.classList.remove('show'));
+  completeModal.addEventListener('click', (e) => { if (e.target === completeModal) completeModal.classList.remove('show'); });
+
+  const wtyToggle = document.getElementById('wtyToggle');
+  const wtyFields = document.getElementById('wtyFields');
+  wtyToggle.addEventListener('change', () => {
+    wtyFields.style.display = wtyToggle.checked ? 'block' : 'none';
+    wtyFields.querySelectorAll('textarea,input[type="date"]').forEach(el=>{
+      if (wtyToggle.checked) el.setAttribute('required','required'); else el.removeAttribute('required');
+    });
+  });
+})();
+</script>
+</body>
+</html>

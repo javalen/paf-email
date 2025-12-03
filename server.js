@@ -649,11 +649,13 @@ app.get("/document-update/:id", async (req, res) => {
       ? `<ul><li><a href="${fileUrl}" target="_blank" rel="noopener">${doc.file}</a></li></ul>`
       : `<div class="small muted">No file attached.</div>`;
 
-    const html = renderTemplate("document_upload.html", {
+    const html = renderTemplate("document_upload_page.html", {
       document: doc,
       facility,
       id: doc.id,
       filesHtml,
+      createdPretty: fmtD(new Date()),
+      expirePretty: fmtD(doc.expire_date),
     });
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
