@@ -676,26 +676,23 @@ app.post(
   express.urlencoded({ extended: true }),
   async (req, res) => {
     try {
-      console.log("documentsvc", req);
       const originalId = req.params.id;
-
+      console.log("originalID", req.params.id);
       if (!req.file) {
         return res.status(400).send("Missing file.");
       }
-
-      console.log("body --->", req.body);
 
       // 1) Get the original facility_document and its doc_def
       const originalDoc = await pb
         .collection("facility_documents")
         .getOne(originalId);
-
+      console.log("Got the doc", `documents.id="${originalId}"`);
       const docDef = await pb
         .collection("facility_doc_def")
-        .getFirstListItem(`documents.id="${originalId}"`, {
+        .getFirstListItem(`documents ~ "${originalId}"`, {
           expand: "documents",
         });
-
+      console.log("Got the doc_def");
       // 2) Save the new document to facility_document
       const fd = new FormData();
       // reset reminder-related flags on the new doc
@@ -765,25 +762,121 @@ app.post(
       // 4) Present success message
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.status(200).send(`
-        <html>
-          <head>
-            <meta charset="utf-8"/>
-            <title>Document Updated</title>
-            <style>
-              body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#f3f4f6; padding:40px; }
-              .card { max-width:640px; margin:0 auto; background:#fff; border-radius:8px; padding:24px; box-shadow:0 10px 30px rgba(15,23,42,0.15); }
-              h1 { font-size:20px; margin-bottom:12px; }
-              p { font-size:14px; color:#4b5563; }
-              a.btn { display:inline-block; margin-top:16px; padding:8px 16px; border-radius:6px; background:#0f766e; color:#fff; text-decoration:none; font-size:14px; }
-            </style>
-          </head>
-          <body>
-            <div class="card">
-              <h1>Thank you! Your document has been uploaded.</h1>
-              <p>You can safely close this window.</p>
-            </div>
-          </body>
-        </html>
+       <!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Document Updated</title>
+  <!-- Optional success redirect after a few seconds:
+  <meta http-equiv="refresh" content="5;url=https://www.predictiveaf.com" />
+  -->
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card-bg:#ffffff;
+      --card-br:#e5e7eb;
+      --muted:#6b7280;
+      --ink:#1f2937;
+      --primary:#0f766e;
+    }
+
+    * { box-sizing:border-box; margin:0; padding:0; }
+
+    body {
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .wrap {
+      max-width: 640px;
+      margin: 40px auto 24px;
+      padding: 16px;
+      text-align: center;
+      flex: 1 0 auto;
+    }
+
+    .logo {
+      width: 200px;
+      max-width: 60%;
+      margin: 0 auto 20px;
+      display: block;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-br);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(15,23,42,0.12);
+      padding: 24px 22px 26px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .cta {
+      margin-top: 14px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 18px;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .footer {
+      flex-shrink: 0;
+      text-align: center;
+      padding: 12px 16px 20px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <img class="logo" src="https://www.predictiveaf.com/assets/paf-BMFchRbW.png" alt="PredictiveAF Logo" />
+
+    <div class="card">
+      <h1>Thank you! Your document has been uploaded.</h1>
+      <p>You can safely close this window.</p>
+      <p>If you opened this page from an email, you may now return to your inbox or the PredictiveAF portal.</p>
+
+      <!-- Optional CTA back to your app/portal -->
+      <!--
+      <div class="cta">
+        <a class="btn" href="https://app.predictiveaf.com">Back to PredictiveAF</a>
+      </div>
+      -->
+    </div>
+  </div>
+
+  <div class="footer">
+    Powered by <strong>PredictiveAF</strong>
+  </div>
+</body>
+</html>
+
+
       `);
     } catch (err) {
       console.error("documentsvc upload failed", err);

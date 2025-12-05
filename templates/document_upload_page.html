@@ -6,58 +6,144 @@
   <title>Update Document</title>
   <style>
     :root{
-      --card-bg:#fff;--card-br:#e5e7eb;--muted:#6b7280;--ink:#1f2937;
-      --btn:#0f766e;--btn-h:#0a5c56;--btn-2:#1f2937;--btn-2h:#111827;
+      --bg:#f6f7fb;
+      --card-bg:#ffffff;
+      --card-br:#e5e7eb;
+      --muted:#6b7280;
+      --ink:#1f2937;
+      --primary:#0f766e;
+      --primary-hover:#0a5c56;
     }
-    *{box-sizing:border-box}
-    body{
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background:#f6f7fb;margin:0;padding:0;color:var(--ink)
+
+    * { box-sizing:border-box; margin:0; padding:0; }
+
+    body {
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
     }
-    .wrap{max-width:880px;margin:24px auto;padding:16px}
-    .card{
-      background:var(--card-bg);border:1px solid var(--card-br);
-      border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);
-      padding:18px;margin-bottom:14px
+
+    .wrap {
+      max-width: 880px;
+      margin: 24px auto;
+      padding: 16px;
+      text-align: center;
+      flex: 1 0 auto;
     }
-    h1{font-size:18px;margin:0 0 2px}
-    h2{font-size:16px;margin:0 0 10px}
-    .grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:12px;
-      align-items:flex-start;
+
+    .logo {
+      width: 200px;
+      max-width: 50%;
+      margin: 0 auto 18px;
+      display: block;
     }
-    .muted{color:var(--muted)}
-    .small{font-size:12px}
-    label{
-      font-size:12px;color:#374151;
-      display:block;margin:8px 0 6px
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-br);
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      padding: 22px;
+      margin-bottom: 18px;
+      text-align: left;
     }
-    input,textarea,select{
-      width:100%;padding:10px;border:1px solid #d1d5db;
-      border-radius:8px;font:inherit
+
+    h1 { font-size: 20px; margin-bottom: 8px; }
+    h2 { font-size: 17px; margin-bottom: 10px; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
     }
-    textarea{min-height:96px}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .btn{
-      appearance:none;border:0;background:var(--btn);
-      color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: flex-start;
     }
-    .btn:hover{background:var(--btn-h)}
-    .btn.secondary{background:var(--btn-2)}
-    .btn.secondary:hover{background:var(--btn-2h)}
-    .files{padding-left:18px}
-    .full-span{
-      grid-column:1 / -1;
+
+    .full-span {
+      grid-column: 1 / -1;
     }
-    .center{text-align:center}
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+      color: #374151;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    textarea { min-height: 96px; }
+
+    .btn {
+      width: 100%;
+      appearance: none;
+      border: 0;
+      background: var(--primary);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .18s, opacity .18s;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn[disabled] {
+      opacity: 0.7;
+      cursor: default;
+    }
+
+    .center { text-align: center; }
+
+    .footer {
+      flex-shrink: 0;
+      text-align: center;
+      padding: 12px 16px 20px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .wrap {
+        padding: 12px;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
+    <img class="logo" src="https://www.predictiveaf.com/assets/paf-BMFchRbW.png" alt="PredictiveAF Logo" />
+
     <div class="card">
-      <div class="row" style="justify-content:space-between">
+      <div class="row">
         <h1>Update Document</h1>
         <div class="muted small">Created: {{createdPretty}}</div>
       </div>
@@ -65,23 +151,23 @@
       <div class="grid">
         <div>
           <h2>Facility</h2>
-          <div><strong>{{facility.name}}</strong></div>
+          <strong>{{facility.name}}</strong>
         </div>
         <div>
           <h2>Document Details</h2>
-          <div><strong>{{document.name}}</strong></div>
+          <strong>{{document.name}}</strong>
         </div>
       </div>
 
-      <div style="margin-top:12px">
+      <div style="margin-top:14px;">
         <h2>Description</h2>
-        <div>Your document has expired or will expire on {{expirePretty}}</div>
+        Your document has expired or will expire on {{expirePretty}}.
       </div>
     </div>
 
     <div class="card">
       <h2>Upload New Document</h2>
-      <!-- maps to /documentsvc/:id/upload -->
+
       <form
         class="grid"
         action="/documentsvc/{{id}}/upload"
@@ -91,77 +177,51 @@
       >
         <div>
           <label for="contact_name">Your Name *</label>
-          <input
-            id="contact_name"
-            name="contact_name"
-            required
-            placeholder="Your name"
-          />
-        </div>
-        <div>
-          <label for="contact_number">Phone Number *</label>
-          <input
-            id="contact_number"
-            name="contact_number"
-            required
-            placeholder="(111) 222-3333"
-            inputmode="tel"
-          />
-        </div>
-        <div>
-          <label for="contact_email">Email *</label>
-          <input
-            id="contact_email"
-            name="contact_email"
-            type="email"
-            required
-            placeholder="you@example.com"
-          />
-        </div>
-        <div>
-          <label for="expire_date">Expiration Date *</label>
-          <input
-            id="expire_date"
-            type="date"
-            name="expire_date"
-            required
-          />
+          <input id="contact_name" name="contact_name" required placeholder="Your name"/>
         </div>
 
-        <!-- Attach label spans 2 columns and is centered -->
-        <div class="full-span center" style="margin-top:4px;">
+        <div>
+          <label for="contact_number">Phone Number *</label>
+          <input id="contact_number" name="contact_number" required placeholder="(111) 222-3333" inputmode="tel"/>
+        </div>
+
+        <div>
+          <label for="contact_email">Email *</label>
+          <input id="contact_email" name="contact_email" type="email" required placeholder="you@example.com"/>
+        </div>
+
+        <div>
+          <label for="expire_date">Expiration Date *</label>
+          <input id="expire_date" type="date" name="expire_date" required/>
+        </div>
+
+        <div class="full-span center" style="margin-top:6px;">
           <strong>Attach File</strong>
         </div>
 
         <div>
           <label for="file">File *</label>
-          <input
-            id="file"
-            type="file"
-            name="file"
-            required
-          />
+          <input id="file" type="file" name="file" required/>
         </div>
         <div>
           <label for="rename">Rename (optional)</label>
-          <input
-            id="rename"
-            type="text"
-            name="rename"
-            placeholder="e.g. estimate.pdf"
-          />
+          <input id="rename" type="text" name="rename" placeholder="e.g. estimate.pdf"/>
         </div>
 
-        <div class="full-span" style="margin-top:10px;">
-          <button class="btn secondary" type="submit">Upload</button>
+        <div class="full-span" style="margin-top:14px;">
+          <button class="btn" type="submit" id="submitBtn">Upload</button>
         </div>
       </form>
 
-      <div style="margin-top:10px">
+      <div style="margin-top:14px;">
         <div class="muted small">Original File:</div>
         {{filesHtml}}
       </div>
     </div>
+  </div>
+
+  <div class="footer">
+    Powered by <strong>PredictiveAF</strong>
   </div>
 
   <script>
@@ -172,6 +232,7 @@
       const nameInput = document.getElementById("contact_name");
       const dateInput = document.getElementById("expire_date");
       const fileInput = document.getElementById("file");
+      const submitBtn = document.getElementById("submitBtn");
 
       function formatPhone(value) {
         const digits = value.replace(/\D/g, "").slice(0, 10);
@@ -181,31 +242,26 @@
         if (len < 4) return "(" + digits;
         if (len < 7) return "(" + digits.slice(0, 3) + ") " + digits.slice(3);
         return (
-          "(" +
-          digits.slice(0, 3) +
-          ") " +
-          digits.slice(3, 6) +
-          "-" +
+          "(" + digits.slice(0, 3) + ") " +
+          digits.slice(3, 6) + "-" +
           digits.slice(6)
         );
       }
 
       // Live phone formatting
-      phoneInput.addEventListener("input", function (e) {
+      phoneInput.addEventListener("input", function () {
         const cursorPos = phoneInput.selectionStart;
         const prevLength = phoneInput.value.length;
 
         phoneInput.value = formatPhone(phoneInput.value);
 
-        // best-effort cursor adjustment
         const newLength = phoneInput.value.length;
         const diff = newLength - prevLength;
         phoneInput.setSelectionRange(cursorPos + diff, cursorPos + diff);
       });
 
       form.addEventListener("submit", function (e) {
-        // Basic required checks (HTML5 will also handle these, but we
-        // add some custom checks for phone formatting)
+        // Basic checks
         if (!nameInput.value.trim()) {
           alert("Please enter your name.");
           nameInput.focus();
@@ -249,8 +305,12 @@
           return;
         }
 
-        // Ensure the phone is in final (111) 222-3333 format before submit
+        // Ensure final phone format
         phoneInput.value = formatPhone(phoneInput.value);
+
+        // Show "Uploading..." state
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Uploading…";
       });
     })();
   </script>
