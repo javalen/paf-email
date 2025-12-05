@@ -708,8 +708,10 @@ app.post(
         const safeBase = desiredName.replace(/[\\/:*?"<>|]+/g, "_").trim();
         console.log("New file name", safeBase);
         fd.append("file", new Blob([req.file.buffer]), safeBase);
+        fd.append("name", safeBase);
       } else {
         fd.append("file", new Blob([req.file.buffer]), originalDoc.name);
+        fd.append("name", originalDoc.name);
       }
 
       fd.append("contact_name", req.body.contact_name);
