@@ -676,6 +676,7 @@ app.post(
   express.urlencoded({ extended: true }),
   async (req, res) => {
     try {
+      console.log("documentsvc", req);
       const originalId = req.params.id;
 
       if (!req.file) {
