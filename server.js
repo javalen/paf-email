@@ -1024,6 +1024,7 @@ app.post("/vendor-docs-email", async (req, res) => {
  * GET /vendor-docs/:id
  * Simple info page vendors can visit to see what's missing/expiring.
  */
+// Show vendor compliance status + upload form
 app.get("/vendor-docs/:id", async (req, res) => {
   try {
     const vendor = await pb.collection("service_company").getOne(req.params.id);
@@ -1034,11 +1035,32 @@ app.get("/vendor-docs/:id", async (req, res) => {
       ? fmtD(vendor.coi_exp_date)
       : "Not on file";
 
+    // Current W9 / COI links (if any)
+    const w9FileHtml = vendor.w9
+      ? `<a href="${pbFileUrl(
+          process.env.PB_HOST,
+          vendor.collectionId,
+          vendor.id,
+          vendor.w9
+        )}" target="_blank" rel="noopener">${vendor.w9}</a>`
+      : `<div class="small muted">No W9 on file.</div>`;
+
+    const coiFileHtml = vendor.coi
+      ? `<a href="${pbFileUrl(
+          process.env.PB_HOST,
+          vendor.collectionId,
+          vendor.id,
+          vendor.coi
+        )}" target="_blank" rel="noopener">${vendor.coi}</a>`
+      : `<div class="small muted">No COI on file.</div>`;
+
     const html = renderTemplate("vendor_docs_page.html", {
       vendor,
       issuesHtml,
       coiExpirePretty,
       createdPretty: fmtD(new Date()),
+      w9FileHtml,
+      coiFileHtml,
     });
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -1048,6 +1070,141 @@ app.get("/vendor-docs/:id", async (req, res) => {
     res.status(404).send("Vendor not found.");
   }
 });
+
+// Handle vendor W9 / COI upload
+app.post(
+  "/vendor-docs/:id/upload",
+  upload.fields([
+    { name: "w9_file", maxCount: 1 },
+    { name: "coi_file", maxCount: 1 },
+  ]),
+  express.urlencoded({ extended: true }),
+  async (req, res) => {
+    try {
+      const vendorId = req.params.id;
+      const files = req.files || {};
+      const w9File = files.w9_file && files.w9_file[0];
+      const coiFile = files.coi_file && files.coi_file[0];
+      const coiExpDate = (req.body.coi_exp_date || "").trim();
+
+      if (!w9File && !coiFile && !coiExpDate) {
+        return res
+          .status(400)
+          .send(
+            "Please upload a W9, a COI, or update the COI expiration date."
+          );
+      }
+
+      // If a new COI file is uploaded, require an expiration date
+      if (coiFile && !coiExpDate) {
+        return res
+          .status(400)
+          .send(
+            "Please provide a COI expiration date when uploading a COI file."
+          );
+      }
+
+      const fd = new FormData();
+
+      if (w9File) {
+        fd.append("w9", new Blob([w9File.buffer]), w9File.originalname);
+      }
+
+      if (coiFile) {
+        fd.append("coi", new Blob([coiFile.buffer]), coiFile.originalname);
+      }
+
+      if (coiExpDate) {
+        // Store as provided; PocketBase will store it as text/date field
+        fd.append("coi_exp_date", coiExpDate);
+      }
+
+      // Optional: clear reminder flags when vendor updates docs
+      fd.append("reminder_sent", "false");
+      fd.append("reminder_date", "");
+
+      await pb.collection("service_company").update(vendorId, fd);
+
+      // Simple success page (same style as document upload success)
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.status(200).send(`
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Vendor Documents Updated</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card-bg:#ffffff;
+      --card-br:#e5e7eb;
+      --muted:#6b7280;
+      --ink:#1f2937;
+      --primary:#0f766e;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display:flex;
+      flex-direction:column;
+      overflow-y:auto;
+    }
+    .wrap {
+      max-width: 640px;
+      margin: 40px auto 24px;
+      padding: 16px;
+      text-align: center;
+      flex:1 0 auto;
+    }
+    .logo {
+      width: 200px;
+      max-width:60%;
+      margin: 0 auto 20px;
+      display:block;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-br);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(15,23,42,0.12);
+      padding: 24px 22px 26px;
+      text-align: center;
+    }
+    h1 { font-size:22px; margin-bottom:10px; }
+    p { font-size:14px; color:var(--muted); margin-bottom:6px; }
+    .footer {
+      flex-shrink:0;
+      text-align:center;
+      padding:12px 16px 20px;
+      font-size:12px;
+      color:var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <img class="logo" src="https://www.predictiveaf.com/assets/paf-BMFchRbW.png" alt="PredictiveAF Logo" />
+    <div class="card">
+      <h1>Thank you! Your documents have been updated.</h1>
+      <p>You can safely close this window.</p>
+    </div>
+  </div>
+  <div class="footer">
+    Powered by <strong>PredictiveAF</strong>
+  </div>
+</body>
+</html>
+      `);
+    } catch (err) {
+      console.error("vendor-docs upload failed", err);
+      res.status(500).send("Failed to update vendor documents.");
+    }
+  }
+);
 
 // Accept request
 app.post(
