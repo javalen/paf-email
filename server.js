@@ -32,6 +32,89 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+/** -----------------------
+ * Helpers for vendor-doc analysis
+ * ---------------------- */
+
+/**
+ * Analyze a service_company record's doc status.
+ * Returns { reasons: string[], daysUntil: number|null } where reasons may include:
+ *  - "missing_w9"
+ *  - "missing_coi"
+ *  - "missing_coi_date"
+ *  - "invalid_coi_date"
+ *  - "coi_expired"
+ *  - "coi_expires_soon"
+ */
+function analyzeVendorDocs(vendor) {
+  const reasons = [];
+  let daysUntil = null;
+
+  if (!vendor.w9) {
+    reasons.push("missing_w9");
+  }
+
+  if (!vendor.coi) {
+    reasons.push("missing_coi");
+  } else {
+    if (!vendor.coi_exp_date) {
+      reasons.push("missing_coi_date");
+    } else {
+      const exp = new Date(vendor.coi_exp_date);
+      if (Number.isNaN(exp.getTime())) {
+        reasons.push("invalid_coi_date");
+      } else {
+        const now = new Date();
+        const msPerDay = 1000 * 60 * 60 * 24;
+        const utcTarget = Date.UTC(
+          exp.getFullYear(),
+          exp.getMonth(),
+          exp.getDate()
+        );
+        const utcBase = Date.UTC(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        daysUntil = Math.round((utcTarget - utcBase) / msPerDay);
+
+        if (daysUntil < 0) {
+          reasons.push("coi_expired");
+        } else if (daysUntil <= 30) {
+          reasons.push("coi_expires_soon");
+        }
+      }
+    }
+  }
+
+  return { reasons, daysUntil };
+}
+
+/**
+ * Build an HTML list of issues from reasons[].
+ * This matches the pattern we use for {{filesHtml}} (raw HTML inserted into template).
+ */
+function buildVendorIssuesHtml(reasons, daysUntil) {
+  if (!reasons || reasons.length === 0) {
+    return `<div class="small muted">All documents are current.</div>`;
+  }
+
+  const labels = {
+    missing_w9: "W9 document is missing.",
+    missing_coi: "Certificate of Insurance (COI) is missing.",
+    missing_coi_date: "COI expiration date is missing.",
+    invalid_coi_date: "COI expiration date is invalid.",
+    coi_expired: "COI has expired.",
+    coi_expires_soon:
+      daysUntil != null
+        ? `COI will expire in ${daysUntil} day(s).`
+        : "COI will expire soon (within 30 days).",
+  };
+
+  const items = reasons.map((r) => labels[r] || r);
+  return `<ul>${items.map((t) => `<li>${t}</li>`).join("")}</ul>`;
+}
+
 /** Build email/page data for service record */
 function buildServiceRecordView(rec) {
   const fac = rec.expand?.facility || {};
@@ -43,6 +126,13 @@ function buildServiceRecordView(rec) {
     : rec.attachments
     ? [rec.attachments]
     : [];
+
+  function esc(s = "") {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
 
   // strip a single pair of wrapping braces, then convert newlines
   let rawDesc = String(rec.desc || "").trim();
@@ -65,13 +155,6 @@ function buildServiceRecordView(rec) {
         )
         .join("")}</ul>`
     : `<div class="small muted">No files attached.</div>`;
-
-  function esc(s = "") {
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-  }
 
   // comments HTML (from expanded comments)
   const comments = Array.isArray(rec.expand?.comments)
@@ -559,15 +642,14 @@ app.get("/service/:id", async (req, res) => {
   }
 });
 
-// Public mini-console email trigger for document update
+/**
+ * Public mini-console email trigger for document update
+ */
 app.post("/update-document", async (req, res) => {
   console.log("Received a request");
   try {
-    // Body can be either { documentId } or { document: { id: ... } }
     const { document: docFromBody, facilityName, to } = req.body || {};
     const id = req.body.record.id;
-    //console.log("documentId", documentId, "TO:", document.contact_email);
-    //const id = docFromBody?.id || documentId;
     console.log("ID", req.body || {}, id);
     if (!id) {
       console.log("NO ID");
@@ -884,6 +966,88 @@ app.post(
     }
   }
 );
+
+/** -----------------------
+ * NEW: Vendor-doc compliance email + info page
+ * ---------------------- */
+
+/**
+ * POST /vendor-docs-email
+ * Called by the checker service. Body: { record: { id, ... }, reasons, daysUntil }
+ */
+app.post("/vendor-docs-email", async (req, res) => {
+  try {
+    const payload = req.body?.record || req.body;
+    if (!payload || !payload.id) {
+      return res.status(400).send("Missing vendor record (id required).");
+    }
+
+    // Always reload from PocketBase to ensure we have the latest vendor info
+    const vendor = await pb.collection("service_company").getOne(payload.id);
+
+    if (!vendor.email) {
+      return res.status(400).send("Vendor has no email on file.");
+    }
+
+    const reasons = req.body.reasons || req.body.reason || [];
+    const daysUntil =
+      typeof req.body.daysUntil === "number" ? req.body.daysUntil : null;
+
+    const issuesHtml = buildVendorIssuesHtml(reasons, daysUntil);
+
+    const pageUrl = `${process.env.PAF_MAIL_HOST.replace(
+      /\/$/,
+      ""
+    )}/vendor-docs/${vendor.id}`;
+
+    const html = renderTemplate("vendor_docs_notice.html", {
+      vendor,
+      issuesHtml,
+      pageUrl,
+    });
+
+    await transporter.sendMail({
+      from: "support@predictiveaf.com",
+      to: vendor.email,
+      subject: "Action needed: Vendor compliance documents for PredictiveAF",
+      html,
+    });
+
+    res.status(200).send("Vendor doc email sent.");
+  } catch (err) {
+    console.error("vendor-docs-email failed", err);
+    res.status(500).send("Internal error sending vendor doc email.");
+  }
+});
+
+/**
+ * GET /vendor-docs/:id
+ * Simple info page vendors can visit to see what's missing/expiring.
+ */
+app.get("/vendor-docs/:id", async (req, res) => {
+  try {
+    const vendor = await pb.collection("service_company").getOne(req.params.id);
+
+    const { reasons, daysUntil } = analyzeVendorDocs(vendor);
+    const issuesHtml = buildVendorIssuesHtml(reasons, daysUntil);
+    const coiExpirePretty = vendor.coi_exp_date
+      ? fmtD(vendor.coi_exp_date)
+      : "Not on file";
+
+    const html = renderTemplate("vendor_docs_page.html", {
+      vendor,
+      issuesHtml,
+      coiExpirePretty,
+      createdPretty: fmtD(new Date()),
+    });
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.status(200).send(html);
+  } catch (err) {
+    console.error("vendor-docs page failed", err);
+    res.status(404).send("Vendor not found.");
+  }
+});
 
 // Accept request
 app.post(
