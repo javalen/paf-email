@@ -17,7 +17,9 @@ app.use(bodyParser.json());
 app.use(cors());
 
 const pb = new PocketBase(process.env.PB_HOST);
+const pbMstr = new PocketBase(process.env.PB_MSTR_HOST);
 pb.autoCancellation(false);
+pbMstr.autoCancellation(false);
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -30,6 +32,240 @@ const transporter = nodemailer.createTransport({
     user: process.env.TRANSPORT_USER,
     pass: process.env.TRANSPORT_PASS,
   },
+});
+
+// ✅ DROP-IN: Newsletter cron endpoint for your existing server.js
+// Matches your PB schema exactly for newsletter_issues:
+//  - slug, subject, preheader, html, text, status (draft/scheduled/sending/sent), send_at, sent_at, hero_image_url
+//
+// Assumptions for newsletter_send_log (per your note: no user field needed):
+//  - issue (relation -> newsletter_issues)
+//  - cr_name (text)
+//  - cr_email (text)
+//  - status (text/select) like: queued/sent/failed/skipped
+//  - error (text)
+//  - sent_at (date)
+// If your field names differ, adjust ONLY the create() payload in logSendAttempt() below.
+//
+// Security:
+//  - Requires header: X-CRON-SECRET: <CRON_SECRET>
+// Env:
+//  - CRON_SECRET must be set
+//
+// Usage:
+//  - POST /newsletter/send
+//  - Optional: ?dryRun=true  (won't send, won't mark as sent, will not log sends)
+//  - Optional: ?limit=50     (cap recipients)
+//
+// Placeholders you can use inside newsletter_issues.html or newsletter_issues.text:
+//  {{cr_name}} {{cr_email}} {{month}} {{year}} {{preheader}} {{hero_image_url}} {{slug}}
+
+function escapeText(s = "") {
+  return String(s).replace(/\r/g, "").replace(/\t/g, " ").trim();
+}
+
+function dedupeByEmail(rows) {
+  const map = new Map();
+  for (const r of rows || []) {
+    const email = String(r?.cr_email || "")
+      .trim()
+      .toLowerCase();
+    if (!email) continue;
+    if (!map.has(email)) map.set(email, r);
+  }
+  return Array.from(map.values());
+}
+
+// --- PB helpers ---
+async function getDueIssue() {
+  const nowIso = new Date().toISOString();
+  const list = await pbMstr.collection("newsletter_issues").getList(1, 1, {
+    filter: `status="scheduled" && send_at <= "${nowIso}"`,
+    sort: "send_at",
+  });
+  return list?.items?.[0] || null;
+}
+
+async function setIssue(issueId, patch) {
+  return pbMstr.collection("newsletter_issues").update(issueId, patch);
+}
+
+async function getClientReps(limit = 0) {
+  // Pull all clients that have CR email/name present
+  const clients = await pbMstr.collection("clients").getFullList({
+    filter: `cr_email != ""`,
+    //filter: `name="PAF Test Client"`,
+    sort: "cr_email",
+  });
+  const deduped = dedupeByEmail(clients);
+  return limit ? deduped.slice(0, limit) : deduped;
+}
+
+async function alreadyLogged(issueId, email) {
+  const e = String(email || "")
+    .trim()
+    .toLowerCase();
+  if (!e) return true;
+  try {
+    await pb
+      .collection("newsletter_send_log")
+      .getFirstListItem(`issue="${issueId}" && cr_email="${e}"`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function logSendAttempt({ issueId, cr_name, cr_email, status, error }) {
+  try {
+    return await pbMstr.collection("newsletter_send_log").create({
+      issue: issueId,
+      cr_name: cr_name || "",
+      cr_email: String(cr_email || "")
+        .trim()
+        .toLowerCase(),
+      status,
+      error: error ? String(error).slice(0, 5000) : "",
+      sent_at: status === "sent" ? new Date().toISOString() : "",
+    });
+  } catch (e) {
+    console.error("Failed to write newsletter_send_log", e);
+  }
+}
+
+// -----------------------------------
+// ✅ NEW ENDPOINT: POST /newsletter/send
+// -----------------------------------
+app.get("/newsletter/send", async (req, res) => {
+  const limit = Number(req.query?.limit || 0) || 0;
+  const dryRun = String(req.query?.dryRun || "").toLowerCase() === "true";
+
+  try {
+    const issue = await getDueIssue();
+    if (!issue)
+      return res.status(200).json({ ok: true, message: "No due issue." });
+
+    // Lock issue
+    await setIssue(issue.id, { status: "sending" });
+
+    const subject = escapeText(issue.subject || "PredictiveAF Newsletter");
+    const preheader = escapeText(issue.preheader || "");
+    const slug = escapeText(issue.slug || "");
+    const hero_image_url = escapeText(issue.hero_image_url || "");
+
+    const recipients = await getClientReps(limit);
+
+    const now = new Date();
+    const month = now.toLocaleString("en-US", { month: "long" });
+    const year = String(now.getFullYear());
+
+    let sent = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (const c of recipients) {
+      const cr_email = String(c.cr_email || "").trim();
+      const cr_name = String(c.cr_name || "").trim();
+
+      if (!cr_email) {
+        skipped++;
+        continue;
+      }
+
+      // Idempotent: skip if already logged
+      if (await alreadyLogged(issue.id, cr_email)) {
+        skipped++;
+        continue;
+      }
+
+      const vars = {
+        cr_name: cr_name || "Client Rep",
+        cr_email,
+        month,
+        year,
+        preheader,
+        hero_image_url,
+        slug,
+      };
+
+      try {
+        if (!dryRun) {
+          await transporter.sendMail({
+            from: "support@predictiveaf.com",
+            to: cr_email,
+            subject,
+            html: String(issue.text || "").trim(), // ✅ final HTML only
+            text: String(issue.text || "").trim(),
+            // ✅ helps some clients; harmless if ignored
+          });
+        }
+
+        if (!dryRun) {
+          await logSendAttempt({
+            issueId: issue.id,
+            cr_name,
+            cr_email,
+            status: "sent",
+          });
+          sent++;
+        } else {
+          skipped++;
+        }
+      } catch (e) {
+        failed++;
+        await logSendAttempt({
+          issueId: issue.id,
+          cr_name,
+          cr_email,
+          status: "failed",
+          error: e?.message || String(e),
+        });
+      }
+    }
+
+    if (dryRun) {
+      // Restore so it can run for real later
+      await setIssue(issue.id, { status: "scheduled" });
+
+      return res.status(200).json({
+        ok: true,
+        dryRun: true,
+        issue: { id: issue.id, slug, subject },
+        totals: {
+          targeted: recipients.length,
+          wouldSend: recipients.length - skipped,
+          skipped,
+          failed,
+        },
+      });
+    }
+
+    // Mark complete
+    await setIssue(issue.id, {
+      status: "sent",
+      sent_at: new Date().toISOString(),
+    });
+
+    return res.status(200).json({
+      ok: true,
+      issue: { id: issue.id, slug, subject },
+      totals: { targeted: recipients.length, sent, skipped, failed },
+    });
+  } catch (err) {
+    console.error("/newsletter/send failed", err);
+
+    // Best-effort unlock any issue stuck in "sending"
+    try {
+      const stuck = await pbMstr.collection("newsletter_issues").getList(1, 1, {
+        filter: `status="sending"`,
+        sort: "-updated",
+      });
+      const maybe = stuck?.items?.[0];
+      if (maybe?.id) await setIssue(maybe.id, { status: "scheduled" });
+    } catch {}
+
+    return res.status(500).send("Internal error sending newsletter.");
+  }
 });
 
 /** -----------------------
