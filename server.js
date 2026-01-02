@@ -93,8 +93,8 @@ async function setIssue(issueId, patch) {
 async function getClientReps(limit = 0) {
   // Pull all clients that have CR email/name present
   const clients = await pbMstr.collection("clients").getFullList({
-    //filter: `cr_email != ""`,
-    filter: `name="PAF Test Client"`,
+    filter: `cr_email != ""`,
+    //filter: `name="PAF Test Client"`,
     sort: "cr_email",
   });
   const deduped = dedupeByEmail(clients);
