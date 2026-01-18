@@ -599,6 +599,7 @@ app.post("/send-welcome-email", async (req, res) => {
 // Verification success page + email trigger
 const verifyClient = async (id, backend) => {
   try {
+    console.log("Verify Client");
     const client = await backend
       .collection("client")
       .getFirstListItem(`manager="${id}"`);
@@ -612,16 +613,23 @@ const verifyClient = async (id, backend) => {
 const verifyUserAndClient = async (email, host) => {
   try {
     const clientpb = new PocketBase(host);
+    await clientpb
+      .collection("_superusers")
+      .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
+
     const user = await clientpb
       .collection("users")
       .getFirstListItem(`email="${email}"`);
+
     const personel = await clientpb
       .collection("personel")
       .getFirstListItem(`user="${user.id}"`);
+
     await clientpb
       .collection("personel")
       .update(personel.id, { verified: true });
     const client = await verifyClient(user.id, clientpb);
+
     return { client, user };
   } catch (error) {
     console.log(`Error verifying User ${error}`);
