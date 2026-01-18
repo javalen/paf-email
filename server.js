@@ -79,6 +79,12 @@ function dedupeByEmail(rows) {
 // --- PB helpers ---
 async function getDueIssue() {
   const nowIso = new Date().toISOString();
+  await pbMstr
+    .collection("_superusers")
+    .authWithPassword(
+      process.env.PB_MSTR_ADMIN_EMAIL,
+      process.env.PB_MSTR_ADMIN_PASS
+    );
   const list = await pbMstr.collection("newsletter_issues").getList(1, 1, {
     filter: `status="scheduled" && send_at <= "${nowIso}"`,
     sort: "send_at",
@@ -87,10 +93,22 @@ async function getDueIssue() {
 }
 
 async function setIssue(issueId, patch) {
+  await pbMstr
+    .collection("_superusers")
+    .authWithPassword(
+      process.env.PB_MSTR_ADMIN_EMAIL,
+      process.env.PB_MSTR_ADMIN_PASS
+    );
   return pbMstr.collection("newsletter_issues").update(issueId, patch);
 }
 
 async function getClientReps(limit = 0) {
+  await pbMstr
+    .collection("_superusers")
+    .authWithPassword(
+      process.env.PB_MSTR_ADMIN_EMAIL,
+      process.env.PB_MSTR_ADMIN_PASS
+    );
   // Pull all clients that have CR email/name present
   const clients = await pbMstr.collection("clients").getFullList({
     filter: `cr_email != ""`,
@@ -118,6 +136,12 @@ async function alreadyLogged(issueId, email) {
 
 async function logSendAttempt({ issueId, cr_name, cr_email, status, error }) {
   try {
+    await pbMstr
+      .collection("_superusers")
+      .authWithPassword(
+        process.env.PB_MSTR_ADMIN_EMAIL,
+        process.env.PB_MSTR_ADMIN_PASS
+      );
     return await pbMstr.collection("newsletter_send_log").create({
       issue: issueId,
       cr_name: cr_name || "",
@@ -256,6 +280,12 @@ app.get("/newsletter/send", async (req, res) => {
 
     // Best-effort unlock any issue stuck in "sending"
     try {
+      await pbMstr
+        .collection("_superusers")
+        .authWithPassword(
+          process.env.PB_MSTR_ADMIN_EMAIL,
+          process.env.PB_MSTR_ADMIN_PASS
+        );
       const stuck = await pbMstr.collection("newsletter_issues").getList(1, 1, {
         filter: `status="sending"`,
         sort: "-updated",
@@ -461,6 +491,9 @@ async function sendHtmlEmail(to, subject, templateName, data) {
  * ---------------------- */
 const verifyAdminUser = async (email) => {
   try {
+    await pb
+      .collection("_superusers")
+      .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
     const user = await pb
       .collection("users")
       .getFirstListItem(`email="${email}"`);
@@ -545,6 +578,9 @@ app.post("/send-admin-verify-success", async (req, res) => {
  * ---------------------- */
 const acceptRoleInFacility = async (id) => {
   try {
+    await pb
+      .collection("_superusers")
+      .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
     const record = await pb.collection("new_users").getOne(id, {
       expand: "personel,facility",
     });
@@ -832,6 +868,9 @@ app.post("/email-service-co", async (req, res) => {
         .send("Missing service_history record (id required).");
     }
 
+    await pb
+      .collection("_superusers")
+      .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
     const rec = payload.expand
       ? payload
       : await pb.collection("service_history").getOne(payload.id, {
@@ -873,6 +912,9 @@ app.post("/email-service-co", async (req, res) => {
 // Public mini-console page
 app.get("/service/:id", async (req, res) => {
   try {
+    await pb
+      .collection("_superusers")
+      .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
     const rec = await pb.collection("service_history").getOne(req.params.id, {
       // expand comments so they can be displayed
       expand: "facility,servicer,system,comments",
@@ -901,6 +943,9 @@ app.post("/update-document", async (req, res) => {
     }
 
     // Always re-load from PB so we have collectionId + expand
+    await pb
+      .collection("_superusers")
+      .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
     const doc = await pb.collection("facility_documents").getOne(id, {
       expand: "facility",
     });
@@ -960,6 +1005,9 @@ app.post("/update-document", async (req, res) => {
 // Public mini-console page for uploading document (shows the form)
 app.get("/document-update/:id", async (req, res) => {
   try {
+    await pb
+      .collection("_superusers")
+      .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
     const doc = await pb
       .collection("facility_documents")
       .getOne(req.params.id, {
@@ -1003,11 +1051,16 @@ app.post(
   async (req, res) => {
     try {
       const originalId = req.params.id;
-      console.log("originalID", req.params.id);
       if (!req.file) {
         return res.status(400).send("Missing file.");
       }
 
+      await pb
+        .collection("_superusers")
+        .authWithPassword(
+          process.env.PB_ADMIN_EMAIL,
+          process.env.PB_ADMIN_PASS
+        );
       // 1) Get the original facility_document and its doc_def
       const originalDoc = await pb
         .collection("facility_documents")
@@ -1226,6 +1279,9 @@ app.post("/vendor-docs-email", async (req, res) => {
       return res.status(400).send("Missing vendor record (id required).");
     }
 
+    await pb
+      .collection("_superusers")
+      .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
     // Always reload from PocketBase to ensure we have the latest vendor info
     const vendor = await pb.collection("service_company").getOne(payload.id);
 
@@ -1271,6 +1327,9 @@ app.post("/vendor-docs-email", async (req, res) => {
 // Show vendor compliance status + upload form
 app.get("/vendor-docs/:id", async (req, res) => {
   try {
+    await pb
+      .collection("_superusers")
+      .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
     const vendor = await pb.collection("service_company").getOne(req.params.id);
 
     const { reasons, daysUntil } = analyzeVendorDocs(vendor);
@@ -1459,6 +1518,12 @@ app.post(
     if (!name || !start_date)
       return res.status(400).send("Name and Start Date are required.");
     try {
+      await pb
+        .collection("_superusers")
+        .authWithPassword(
+          process.env.PB_ADMIN_EMAIL,
+          process.env.PB_ADMIN_PASS
+        );
       await pb.collection("service_history").update(req.params.id, {
         accepted: true,
         accepted_by: name,
@@ -1477,7 +1542,9 @@ app.post(
 app.post("/service/:id/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).send("Missing file.");
-
+    await pb
+      .collection("_superusers")
+      .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
     const rec = await pb.collection("service_history").getOne(req.params.id);
     const existing = Array.isArray(rec.attachments)
       ? rec.attachments
@@ -1518,6 +1585,12 @@ app.post(
     if (!text) return res.status(400).send("Comment is required.");
     try {
       const user = "Service Company";
+      await pb
+        .collection("_superusers")
+        .authWithPassword(
+          process.env.PB_ADMIN_EMAIL,
+          process.env.PB_ADMIN_PASS
+        );
       const com = await pb.collection("service_comment").create({
         comment: text,
         service_id: req.params.id,
@@ -1544,6 +1617,12 @@ app.post(
       return res.status(400).send("Name and Start Date are required.");
     }
     try {
+      await pb
+        .collection("_superusers")
+        .authWithPassword(
+          process.env.PB_ADMIN_EMAIL,
+          process.env.PB_ADMIN_PASS
+        );
       await pb.collection("service_history").update(req.params.id, {
         status: "In Progress",
         svc_start_date: start_date,
@@ -1577,6 +1656,9 @@ app.post(
     if (!name || !date)
       return res.status(400).send("Name and Date are required.");
 
+    await pb
+      .collection("_superusers")
+      .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
     try {
       // Attach invoice if provided
       if (req.file) {
