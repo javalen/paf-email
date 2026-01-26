@@ -83,7 +83,7 @@ async function getDueIssue() {
     .collection("_superusers")
     .authWithPassword(
       process.env.PB_MSTR_ADMIN_EMAIL,
-      process.env.PB_MSTR_ADMIN_PASS
+      process.env.PB_MSTR_ADMIN_PASS,
     );
   const list = await pbMstr.collection("newsletter_issues").getList(1, 1, {
     filter: `status="scheduled" && send_at <= "${nowIso}"`,
@@ -97,7 +97,7 @@ async function setIssue(issueId, patch) {
     .collection("_superusers")
     .authWithPassword(
       process.env.PB_MSTR_ADMIN_EMAIL,
-      process.env.PB_MSTR_ADMIN_PASS
+      process.env.PB_MSTR_ADMIN_PASS,
     );
   return pbMstr.collection("newsletter_issues").update(issueId, patch);
 }
@@ -107,7 +107,7 @@ async function getClientReps(limit = 0) {
     .collection("_superusers")
     .authWithPassword(
       process.env.PB_MSTR_ADMIN_EMAIL,
-      process.env.PB_MSTR_ADMIN_PASS
+      process.env.PB_MSTR_ADMIN_PASS,
     );
   // Pull all clients that have CR email/name present
   const clients = await pbMstr.collection("clients").getFullList({
@@ -140,7 +140,7 @@ async function logSendAttempt({ issueId, cr_name, cr_email, status, error }) {
       .collection("_superusers")
       .authWithPassword(
         process.env.PB_MSTR_ADMIN_EMAIL,
-        process.env.PB_MSTR_ADMIN_PASS
+        process.env.PB_MSTR_ADMIN_PASS,
       );
     return await pbMstr.collection("newsletter_send_log").create({
       issue: issueId,
@@ -284,7 +284,7 @@ app.get("/newsletter/send", async (req, res) => {
         .collection("_superusers")
         .authWithPassword(
           process.env.PB_MSTR_ADMIN_EMAIL,
-          process.env.PB_MSTR_ADMIN_PASS
+          process.env.PB_MSTR_ADMIN_PASS,
         );
       const stuck = await pbMstr.collection("newsletter_issues").getList(1, 1, {
         filter: `status="sending"`,
@@ -335,12 +335,12 @@ function analyzeVendorDocs(vendor) {
         const utcTarget = Date.UTC(
           exp.getFullYear(),
           exp.getMonth(),
-          exp.getDate()
+          exp.getDate(),
         );
         const utcBase = Date.UTC(
           now.getFullYear(),
           now.getMonth(),
-          now.getDate()
+          now.getDate(),
         );
         daysUntil = Math.round((utcTarget - utcBase) / msPerDay);
 
@@ -390,8 +390,8 @@ function buildServiceRecordView(rec) {
   const files = Array.isArray(rec.attachments)
     ? rec.attachments
     : rec.attachments
-    ? [rec.attachments]
-    : [];
+      ? [rec.attachments]
+      : [];
 
   function esc(s = "") {
     return String(s)
@@ -416,8 +416,8 @@ function buildServiceRecordView(rec) {
               process.env.PB_HOST,
               rec.collectionId,
               rec.id,
-              f
-            )}" target="_blank" rel="noopener">${esc(f)}</a></li>`
+              f,
+            )}" target="_blank" rel="noopener">${esc(f)}</a></li>`,
         )
         .join("")}</ul>`
     : `<div class="small muted">No files attached.</div>`;
@@ -437,10 +437,10 @@ function buildServiceRecordView(rec) {
             (c) => `
     <div class="cmt">
       <div class="cmt-h"><span>${esc(c.user || "—")}</span><span>${fmtD(
-              c.created
-            )}</span></div>
+        c.created,
+      )}</span></div>
       <div class="cmt-b">${esc(c.comment || "")}</div>
-    </div>`
+    </div>`,
           )
           .join("");
 
@@ -565,7 +565,7 @@ app.post("/send-admin-verify-success", async (req, res) => {
       {
         name,
         PAF_FB_PAGE: process.env.PAF_FB_PAGE,
-      }
+      },
     );
     res.status(200).send("Email sent");
   } catch (e) {
@@ -620,6 +620,7 @@ app.post("/send-welcome-email", async (req, res) => {
   try {
     const { client, to, subject, name, host } = req.body;
     const verificationLink = `${process.env.PAF_MAIL_HOST}/verify-email?token=${to}&host=${host}`;
+    console.log("Sending welcome email to ", to);
     await sendHtmlEmail(to, subject, "welcome_email.html", {
       client,
       name,
@@ -681,7 +682,7 @@ const sendVerificaitonSuccessEmail = (to, name, client) => {
       client,
     })
     .catch((error) =>
-      console.error("Error sending verify success email", error)
+      console.error("Error sending verify success email", error),
     );
 };
 
@@ -715,7 +716,7 @@ app.post("/send-verify-success", async (req, res) => {
         client,
         PAF_PANEL_HOST: process.env.PAF_PANEL_HOST,
         PAF_FB_PAGE: process.env.PAF_FB_PAGE,
-      }
+      },
     );
     res.status(200).send("Email sent");
   } catch (e) {
@@ -742,7 +743,7 @@ app.post("/send-new-user-email", async (req, res) => {
         facility,
         verificationLink,
         PAF_FB_PAGE: process.env.PAF_FB_PAGE,
-      }
+      },
     );
     res.status(200).send("Email sent");
   } catch (e) {
@@ -765,7 +766,7 @@ app.post("/change-password", async (req, res) => {
         name,
         verificationLink,
         PAF_FB_PAGE: process.env.PAF_FB_PAGE,
-      }
+      },
     );
     res.status(200).send("Email sent");
   } catch (e) {
@@ -899,7 +900,7 @@ app.post("/email-service-co", async (req, res) => {
       {
         ...view,
         pageUrl,
-      }
+      },
     );
 
     res.status(200).send("Email sent");
@@ -983,7 +984,7 @@ app.post("/update-document", async (req, res) => {
       return res
         .status(500)
         .send(
-          "No destination email (contact_email or explicit 'to' required)."
+          "No destination email (contact_email or explicit 'to' required).",
         );
     }
 
@@ -1059,7 +1060,7 @@ app.post(
         .collection("_superusers")
         .authWithPassword(
           process.env.PB_ADMIN_EMAIL,
-          process.env.PB_ADMIN_PASS
+          process.env.PB_ADMIN_PASS,
         );
       // 1) Get the original facility_document and its doc_def
       const originalDoc = await pb
@@ -1261,7 +1262,7 @@ app.post(
       console.error("documentsvc upload failed", err);
       res.status(500).send("Failed to upload document.");
     }
-  }
+  },
 );
 
 /** -----------------------
@@ -1297,7 +1298,7 @@ app.post("/vendor-docs-email", async (req, res) => {
 
     const pageUrl = `${process.env.PAF_MAIL_HOST.replace(
       /\/$/,
-      ""
+      "",
     )}/vendor-docs/${vendor.id}`;
 
     const html = renderTemplate("vendor_docs_notice.html", {
@@ -1344,7 +1345,7 @@ app.get("/vendor-docs/:id", async (req, res) => {
           process.env.PB_HOST,
           vendor.collectionId,
           vendor.id,
-          vendor.w9
+          vendor.w9,
         )}" target="_blank" rel="noopener">${vendor.w9}</a>`
       : `<div class="small muted">No W9 on file.</div>`;
 
@@ -1353,7 +1354,7 @@ app.get("/vendor-docs/:id", async (req, res) => {
           process.env.PB_HOST,
           vendor.collectionId,
           vendor.id,
-          vendor.coi
+          vendor.coi,
         )}" target="_blank" rel="noopener">${vendor.coi}</a>`
       : `<div class="small muted">No COI on file.</div>`;
 
@@ -1394,7 +1395,7 @@ app.post(
         return res
           .status(400)
           .send(
-            "Please upload a W9, a COI, or update the COI expiration date."
+            "Please upload a W9, a COI, or update the COI expiration date.",
           );
       }
 
@@ -1403,7 +1404,7 @@ app.post(
         return res
           .status(400)
           .send(
-            "Please provide a COI expiration date when uploading a COI file."
+            "Please provide a COI expiration date when uploading a COI file.",
           );
       }
 
@@ -1506,7 +1507,7 @@ app.post(
       console.error("vendor-docs upload failed", err);
       res.status(500).send("Failed to update vendor documents.");
     }
-  }
+  },
 );
 
 // Accept request
@@ -1522,7 +1523,7 @@ app.post(
         .collection("_superusers")
         .authWithPassword(
           process.env.PB_ADMIN_EMAIL,
-          process.env.PB_ADMIN_PASS
+          process.env.PB_ADMIN_PASS,
         );
       await pb.collection("service_history").update(req.params.id, {
         accepted: true,
@@ -1535,7 +1536,7 @@ app.post(
       console.error("Accept failed", e);
       res.status(500).send("Failed to accept request.");
     }
-  }
+  },
 );
 
 // Upload attachment
@@ -1549,8 +1550,8 @@ app.post("/service/:id/upload", upload.single("file"), async (req, res) => {
     const existing = Array.isArray(rec.attachments)
       ? rec.attachments
       : rec.attachments
-      ? [rec.attachments]
-      : [];
+        ? [rec.attachments]
+        : [];
 
     const fd = new FormData();
     existing.forEach((fn) => fd.append("attachments", fn));
@@ -1589,7 +1590,7 @@ app.post(
         .collection("_superusers")
         .authWithPassword(
           process.env.PB_ADMIN_EMAIL,
-          process.env.PB_ADMIN_PASS
+          process.env.PB_ADMIN_PASS,
         );
       const com = await pb.collection("service_comment").create({
         comment: text,
@@ -1604,7 +1605,7 @@ app.post(
       console.error("Comment failed", e);
       res.status(500).send("Failed to add comment.");
     }
-  }
+  },
 );
 
 // Start work: sets status to In Progress, optionally updates/sets start date
@@ -1621,7 +1622,7 @@ app.post(
         .collection("_superusers")
         .authWithPassword(
           process.env.PB_ADMIN_EMAIL,
-          process.env.PB_ADMIN_PASS
+          process.env.PB_ADMIN_PASS,
         );
       await pb.collection("service_history").update(req.params.id, {
         status: "In Progress",
@@ -1644,7 +1645,7 @@ app.post(
       console.error("Start failed", e);
       res.status(500).send("Failed to set In Progress.");
     }
-  }
+  },
 );
 
 // Complete work: optional invoice upload + optional warranty creation
@@ -1668,15 +1669,15 @@ app.post(
         const existing = Array.isArray(rec.attachments)
           ? rec.attachments
           : rec.attachments
-          ? [rec.attachments]
-          : [];
+            ? [rec.attachments]
+            : [];
 
         const fd = new FormData();
         existing.forEach((fn) => fd.append("attachments", fn));
         fd.append(
           "attachments",
           new Blob([req.file.buffer]),
-          req.file.originalname
+          req.file.originalname,
         );
         await pb.collection("service_history").update(req.params.id, fd);
       }
@@ -1733,7 +1734,7 @@ app.post(
       console.error("Complete failed", e);
       res.status(500).send("Failed to complete work.");
     }
-  }
+  },
 );
 
 app.post("/api/reset-by-id/:id", express.json(), async (req, res) => {
@@ -1769,6 +1770,6 @@ app.post("/api/reset-by-id/:id", express.json(), async (req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(
-    `Server is running on port ${PORT} host is ${process.env.PB_HOST}`
+    `Server is running on port ${PORT} host is ${process.env.PB_HOST}`,
   );
 });
