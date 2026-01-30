@@ -1767,6 +1767,134 @@ app.post("/api/reset-by-id/:id", express.json(), async (req, res) => {
   }
 });
 
+// -----------------------------------
+// ✅ NEW ENDPOINT: POST /newsletter/test
+// -----------------------------------
+// Sends ONE test email to NEWS_LETTER_USER.
+// ❌ Does NOT change newsletter_issues status
+// ❌ Does NOT write newsletter_send_log
+//
+// Usage:
+//  POST /newsletter/test
+//   - optional: ?issueId=xxxx
+//   - optional: ?slug=edition-02
+//  Body (optional): { issueId, slug }
+//
+// Requires:
+//  - NEWS_LETTER_USER in .env
+//  - PB_MSTR_ADMIN_EMAIL / PB_MSTR_ADMIN_PASS in .env
+
+async function getIssueForTest({ issueId, slug }) {
+  await pbMstr
+    .collection("_superusers")
+    .authWithPassword(
+      process.env.PB_MSTR_ADMIN_EMAIL,
+      process.env.PB_MSTR_ADMIN_PASS,
+    );
+
+  const id = String(issueId || "").trim();
+  const s = String(slug || "").trim();
+
+  if (id) {
+    return await pbMstr.collection("newsletter_issues").getOne(id);
+  }
+
+  if (s) {
+    // Prefer exact slug match
+    return await pbMstr
+      .collection("newsletter_issues")
+      .getFirstListItem(`slug="${s.replace(/"/g, '\\"')}"`);
+  }
+
+  // Default: most recent "not sent" issue
+  // Adjust filter if you want ONLY drafts, etc.
+  const list = await pbMstr.collection("newsletter_issues").getList(1, 1, {
+    filter: `status != "sent"`,
+    sort: "-created",
+  });
+
+  return list?.items?.[0] || null;
+}
+
+app.get("/newsletter/test", async (req, res) => {
+  try {
+    const testTo = String(process.env.NEWS_LETTER_USER || "").trim();
+    if (!testTo) {
+      return res.status(400).json({
+        ok: false,
+        error: "NEWS_LETTER_USER is not set in .env",
+      });
+    }
+
+    const issueId = String(req.query.issueId || req.body?.issueId || "").trim();
+    const slug = String(req.query.slug || req.body?.slug || "").trim();
+
+    const issue = await getIssueForTest({ issueId, slug });
+    if (!issue) {
+      return res.status(404).json({
+        ok: false,
+        error: "No newsletter issue found for test send.",
+      });
+    }
+
+    const subject = escapeText(
+      issue.subject || "PredictiveAF Newsletter (Test)",
+    );
+    const preheader = escapeText(issue.preheader || "");
+
+    // if (!html && !text) {
+    //   return res.status(400).json({
+    //     ok: false,
+    //     error: "Issue has no html or text content to send.",
+    //     issue: { id: issue.id, slug: issue.slug, status: issue.status },
+    //   });
+    // }
+
+    const html = String(issue.html || "").trim();
+    const text = String(issue.text || "").trim();
+
+    const looksLikeHtml = /<\s*(html|head|body|table|div|span|p|a)\b/i.test(
+      text,
+    );
+    const finalHtml = html || (looksLikeHtml ? text : "");
+
+    const htmlWithPreheader =
+      preheader && finalHtml
+        ? finalHtml.replace(
+            /<body([^>]*)>/i,
+            `<body$1><div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${preheader}</div>`,
+          )
+        : finalHtml;
+
+    await transporter.sendMail({
+      from: "support@predictiveaf.com",
+      to: testTo,
+      subject: `[TEST] ${subject}`,
+      html: htmlWithPreheader || undefined,
+      text: text && !looksLikeHtml ? text : undefined,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      message: "Test newsletter email sent.",
+      to: testTo,
+      issue: {
+        id: issue.id,
+        slug: issue.slug || "",
+        status: issue.status || "",
+        subject,
+      },
+    });
+  } catch (err) {
+    console.error("POST /newsletter/test failed", err);
+    return res.status(500).json({
+      ok: false,
+      error: "Internal error sending test newsletter.",
+      details: err?.message || String(err),
+    });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(
