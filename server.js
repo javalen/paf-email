@@ -172,7 +172,7 @@ app.get("/newsletter/send", async (req, res) => {
     // Lock issue
     await setIssue(issue.id, { status: "sending" });
 
-    const subject = escapeText(issue.subject || "PredictiveAF Newsletter");
+    const subject = escapeText(issue.subject || "Predictaf Newsletter");
     const preheader = escapeText(issue.preheader || "");
     const slug = escapeText(issue.slug || "");
     const hero_image_url = escapeText(issue.hero_image_url || "");
@@ -733,7 +733,7 @@ app.post("/send-new-user-email", async (req, res) => {
     const verificationLink = `${process.env.PAF_PANEL_HOST}/cpw/${newUserId}`;
     await sendHtmlEmail(
       to,
-      "Welcome to PredictiveAF!",
+      "Welcome to Predictaf!",
       "user_added_to_facility.html",
       {
         name,
@@ -760,7 +760,7 @@ app.post("/change-password", async (req, res) => {
     const verificationLink = `${process.env.PAF_PANEL_HOST}/fpw/${newUserId}`;
     await sendHtmlEmail(
       to,
-      "Change Password request for PredictiveAF!",
+      "Change Password request for Predictaf!",
       "change_password.html",
       {
         name,
@@ -778,7 +778,7 @@ app.post("/send-new-admin-email", async (req, res) => {
   try {
     const { client, to, name, addedBy, newUserId } = req.body;
     const verificationLink = `${process.env.PAF_PANEL_HOST}/cpw/${newUserId}`;
-    await sendHtmlEmail(to, "Welcome to PredictiveAF!", "admin_added.html", {
+    await sendHtmlEmail(to, "Welcome to Predictaf!", "admin_added.html", {
       client,
       name,
       addedBy,
@@ -1234,24 +1234,24 @@ app.post(
 </head>
 <body>
   <div class="wrap">
-    <img class="logo" src="https://www.predictiveaf.com/assets/paf-BMFchRbW.png" alt="PredictiveAF Logo" />
+    <img class="logo" src="https://www.predictiveaf.com/assets/paf-BMFchRbW.png" alt="Predictaf Logo" />
 
     <div class="card">
       <h1>Thank you! Your document has been uploaded.</h1>
       <p>You can safely close this window.</p>
-      <p>If you opened this page from an email, you may now return to your inbox or the PredictiveAF portal.</p>
+      <p>If you opened this page from an email, you may now return to your inbox or the Predictaf portal.</p>
 
       <!-- Optional CTA back to your app/portal -->
       <!--
       <div class="cta">
-        <a class="btn" href="https://app.predictiveaf.com">Back to PredictiveAF</a>
+        <a class="btn" href="https://app.predictiveaf.com">Back to Predictaf</a>
       </div>
       -->
     </div>
   </div>
 
   <div class="footer">
-    Powered by <strong>PredictiveAF</strong>
+    Powered by <strong>Predictaf</strong>
   </div>
 </body>
 </html>
@@ -1310,7 +1310,7 @@ app.post("/vendor-docs-email", async (req, res) => {
     await transporter.sendMail({
       from: "support@predictiveaf.com",
       to: vendor.email,
-      subject: "Action needed: Vendor compliance documents for PredictiveAF",
+      subject: "Action needed: Vendor compliance documents for Predictaf",
       html,
     });
 
@@ -1491,14 +1491,14 @@ app.post(
 </head>
 <body>
   <div class="wrap">
-    <img class="logo" src="https://www.predictiveaf.com/assets/paf-BMFchRbW.png" alt="PredictiveAF Logo" />
+    <img class="logo" src="https://www.predictiveaf.com/assets/paf-BMFchRbW.png" alt="Predictaf Logo" />
     <div class="card">
       <h1>Thank you! Your documents have been updated.</h1>
       <p>You can safely close this window.</p>
     </div>
   </div>
   <div class="footer">
-    Powered by <strong>PredictiveAF</strong>
+    Powered by <strong>Predictaf</strong>
   </div>
 </body>
 </html>
@@ -1837,9 +1837,7 @@ app.get("/newsletter/test", async (req, res) => {
       });
     }
 
-    const subject = escapeText(
-      issue.subject || "PredictiveAF Newsletter (Test)",
-    );
+    const subject = escapeText(issue.subject || "Predictaf Newsletter (Test)");
     const preheader = escapeText(issue.preheader || "");
 
     // if (!html && !text) {
