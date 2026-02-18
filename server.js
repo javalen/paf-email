@@ -471,7 +471,8 @@ function buildServiceRecordView(rec) {
     service_type: rec.service_type || "—",
     systemName: sys.name || rec.service_for || "—",
     filesHtml,
-    commentsHtml, // <<< rendered comments
+    commentsHtml,
+    cost: rec.cost ?? "",
   };
 }
 
@@ -1516,8 +1517,10 @@ app.post(
   express.urlencoded({ extended: true }),
   async (req, res) => {
     const { name, start_date } = req.body || {};
-    if (!name || !start_date)
+    if (!name || !start_date) {
       return res.status(400).send("Name and Start Date are required.");
+    }
+
     try {
       await pb
         .collection("_superusers")
@@ -1525,16 +1528,31 @@ app.post(
           process.env.PB_ADMIN_EMAIL,
           process.env.PB_ADMIN_PASS,
         );
+
+      // ✅ Guard: only allow accept when status is exactly "New"
+      const current = await pb
+        .collection("service_history")
+        .getOne(req.params.id, {
+          fields: "id,status,accepted",
+        });
+
+      const curStatus = (current?.status || "New").trim();
+      if (curStatus !== "New") {
+        // Don’t accept again; send them back to the page which now shows the message
+        return res.redirect(`/service/${req.params.id}`);
+      }
+
       await pb.collection("service_history").update(req.params.id, {
         accepted: true,
         accepted_by: name,
         svc_start_date: start_date,
         status: "Accepted",
       });
-      res.redirect(`/service/${req.params.id}`);
+
+      return res.redirect(`/service/${req.params.id}`);
     } catch (e) {
       console.error("Accept failed", e);
-      res.status(500).send("Failed to accept request.");
+      return res.status(500).send("Failed to accept request.");
     }
   },
 );

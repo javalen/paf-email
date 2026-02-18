@@ -43,7 +43,8 @@
   .modal-backdrop.show{display:flex}
 </style>
 </head>
-<body data-accepted="{{accepted}}" data-status="{{status}}" data-id="{{id}}">
+<body data-accepted="{{accepted}}" data-status="{{status}}" data-id="{{id}}" data-cost="{{cost}}">
+
   <div class="wrap">
     <div class="card">
       <div class="row" style="justify-content:space-between">
@@ -84,6 +85,15 @@
         </div>
       </div>
     </div>
+
+    <!-- Already handled card (shown when status != "New" and not accepted) -->
+<div class="card" id="alreadyCard" style="display:none">
+  <h2>Status Update</h2>
+  <div class="muted" id="alreadyMsg">
+    This request has already been accepted.
+  </div>
+</div>
+
 
     <!-- Accept card (hidden once accepted) -->
     <div class="card" id="acceptCard">
@@ -188,7 +198,7 @@
           </div>
 
           <label style="margin-top:10px">Cost (USD)</label>
-          <input name="cost" type="number" step="0.01" min="0" placeholder="0.00"/>
+          <input name="cost" type="number" step="0.01" min="0" placeholder="0.00" value="{{cost}}"/>
 
           <label style="margin-top:10px">Upload Invoice (optional)</label>
           <input type="file" name="invoice"/>
@@ -224,11 +234,30 @@
   const actionsCard = document.getElementById('actionsCard');
   const btnStart = document.getElementById('btnStart');
   const btnComplete = document.getElementById('btnComplete');
+  const alreadyCard = document.getElementById('alreadyCard');
+  const alreadyMsg = document.getElementById('alreadyMsg');
+  const existingCost = (root.dataset.cost || "").trim();
+const completeForm = document.getElementById('completeForm');
+const costInput = completeForm ? completeForm.querySelector('input[name="cost"]') : null;
+
+
+
+  function statusMessage(s) {
+    const v = (s || '').trim();
+    if (v === 'Accepted') return 'This request has already been accepted.';
+    if (v === 'In Progress') return 'This request is already in progress.';
+    if (v === 'Complete') return 'This request has already been completed.';
+    if (v && v !== 'New') return `This request is already in status: "${v}".`;
+    return '';
+  }
 
   // Show/hide blocks based on accepted/status
   if (accepted) {
+    // Accepted flow: show next actions
     acceptCard.style.display = 'none';
+    if (alreadyCard) alreadyCard.style.display = 'none';
     actionsCard.style.display = 'block';
+
     if (status === 'In Progress') {
       btnStart.style.display = 'none';
       btnComplete.style.display = 'inline-block';
@@ -236,7 +265,22 @@
       btnStart.style.display = 'inline-block';
       btnComplete.style.display = 'none';
     }
+  } else {
+    // Not accepted yet:
+    // If status is not New, hide Accept and show message
+    if (status && status !== 'New') {
+      acceptCard.style.display = 'none';
+      if (alreadyCard) {
+        alreadyCard.style.display = 'block';
+        if (alreadyMsg) alreadyMsg.textContent = statusMessage(status) || 'This request has already been handled.';
+      }
+    } else {
+      // status === New: allow accept
+      acceptCard.style.display = 'block';
+      if (alreadyCard) alreadyCard.style.display = 'none';
+    }
   }
+
 
   // Start modal
   const startModal = document.getElementById('startModal');
@@ -247,6 +291,11 @@
   // Complete modal + warranty toggle
   const completeModal = document.getElementById('completeModal');
   btnComplete?.addEventListener('click', () => completeModal.classList.add('show'));
+  // ✅ Prefill cost from record when reopening + completing again
+if (costInput && (!costInput.value || String(costInput.value).trim() === "") && existingCost !== "") {
+  costInput.value = existingCost;
+}
+
   document.getElementById('closeComplete').addEventListener('click', () => completeModal.classList.remove('show'));
   completeModal.addEventListener('click', (e) => { if (e.target === completeModal) completeModal.classList.remove('show'); });
 
