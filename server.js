@@ -1683,7 +1683,9 @@ app.post(
       if (req.file) {
         const rec = await pb
           .collection("service_history")
-          .getOne(req.params.id);
+          .getOne(req.params.id, {
+            expand: "servicer,system",
+          });
         const existing = Array.isArray(rec.attachments)
           ? rec.attachments
           : rec.attachments
@@ -1717,8 +1719,12 @@ app.post(
           covered: covered,
           start_date: new Date().toString(),
           end_date: new Date(expires).toString(),
+          sys_id: rec.expand.system.id,
+          desc: covered,
           company: servicerName,
+          phone: rec.expand.servicer.phone,
           expired: false,
+          fac_id: rec.expand.system.facility,
         });
         warrantyId = w.id;
       }
