@@ -1709,7 +1709,7 @@ app.post(
         const rec = await pb
           .collection("service_history")
           .getOne(req.params.id, {
-            expand: "servicer",
+            expand: "servicer,system",
           });
         const servicerId = rec?.servicer || "";
         const servicerName = rec?.expand?.servicer?.name || "";
