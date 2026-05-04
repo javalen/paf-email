@@ -755,6 +755,123 @@ app.post("/send-new-user-email", async (req, res) => {
 /** -----------------------
  * Change Password
  * ---------------------- */
+async function authPrimaryPocketBase() {
+  await pb
+    .collection("_superusers")
+    .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
+  return pb;
+}
+
+function publicNewUserPayload(record) {
+  const personel = record.expand?.personel || {};
+  const facility = record.expand?.facility || {};
+  const client = record.expand?.client || {};
+  const user = record.expand?.user || {};
+
+  return {
+    id: record.id,
+    role: record.role || "",
+    verified: !!record.verified,
+    personel: {
+      id: personel.id || "",
+      full_name: personel.full_name || personel.name || "",
+    },
+    facility: {
+      id: facility.id || "",
+      name: facility.name || "",
+    },
+    client: {
+      id: client.id || "",
+      name: client.name || "",
+    },
+    user: {
+      id: user.id || "",
+      email: user.email || record.to_address || "",
+    },
+  };
+}
+
+app.get("/new-user/:id", async (req, res) => {
+  try {
+    const backend = await authPrimaryPocketBase();
+    const record = await backend.collection("new_users").getOne(req.params.id, {
+      expand: "personel,user,facility,client",
+    });
+
+    if (record.verified) {
+      return res.status(409).json({
+        ok: false,
+        code: "already_verified",
+        message:
+          "This record has already been processed. Please contact your Client administrator if you feel this is an error.",
+      });
+    }
+
+    return res.status(200).json({ ok: true, newUser: publicNewUserPayload(record) });
+  } catch (error) {
+    console.log(`Error getting new user invite ${error}`);
+    return res.status(404).json({
+      ok: false,
+      code: "not_found",
+      message: "Record not found.",
+    });
+  }
+});
+
+app.post("/new-user/:id/change-password", async (req, res) => {
+  try {
+    const { password, passwordConfirm } = req.body || {};
+    if (!password || password.length < 4 || password !== passwordConfirm) {
+      return res.status(400).json({
+        ok: false,
+        message: "Password is required and both password fields must match.",
+      });
+    }
+
+    const backend = await authPrimaryPocketBase();
+    const record = await backend.collection("new_users").getOne(req.params.id, {
+      expand: "personel,user,facility,client",
+    });
+
+    if (record.verified) {
+      return res.status(409).json({
+        ok: false,
+        code: "already_verified",
+        message:
+          "This record has already been processed. Please contact your Client administrator if you feel this is an error.",
+      });
+    }
+
+    const userId = record.expand?.user?.id || record.user;
+    const personelId = record.expand?.personel?.id || record.personel;
+    if (!userId || !personelId) {
+      return res.status(422).json({
+        ok: false,
+        message: "Invite record is missing the linked user or personnel record.",
+      });
+    }
+
+    await backend.collection("users").update(userId, {
+      password,
+      passwordConfirm,
+    });
+
+    await backend.collection("personel").update(personelId, { verified: true });
+    await backend.collection("new_users").update(record.id, { verified: true });
+
+    return res.status(200).json({
+      ok: true,
+      newUser: publicNewUserPayload(record),
+    });
+  } catch (error) {
+    console.log(`Error changing new user password ${error}`);
+    return res.status(500).json({
+      ok: false,
+      message: "Unable to change password.",
+    });
+  }
+});
+
 app.post("/change-password", async (req, res) => {
   try {
     const { to, name, newUserId } = req.body;
