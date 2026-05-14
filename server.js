@@ -971,6 +971,103 @@ app.post("/ticket-comment-email", async (req, res) => {
   }
 });
 
+function safeEmail(value = "") {
+  const email = String(value || "")
+    .trim()
+    .toLowerCase();
+  return email && email.includes("@") ? email : "";
+}
+
+function uniqueEmailList(values = []) {
+  return Array.from(new Set((values || []).map(safeEmail).filter(Boolean)));
+}
+
+function escapeHtml(value = "") {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function tenantName(tenant = {}) {
+  return (
+    [tenant.first_name, tenant.last_name].filter(Boolean).join(" ").trim() ||
+    tenant.name ||
+    tenant.email ||
+    "Tenant"
+  );
+}
+
+app.post("/tenant-access-request-email", async (req, res) => {
+  try {
+    const tenant = req.body?.tenant || {};
+    const facility = req.body?.facility || {};
+    const client = req.body?.client || {};
+    const clientRep = req.body?.clientRep || {};
+    const managerRecipients = uniqueEmailList(req.body?.managerRecipients || []);
+    const tenantEmail = safeEmail(tenant.email);
+    const clientRepEmail = safeEmail(clientRep.email);
+    let reviewerRecipients = [];
+    if (managerRecipients.length) {
+      reviewerRecipients = managerRecipients;
+    } else if (clientRepEmail) {
+      reviewerRecipients = [clientRepEmail];
+    }
+
+    if (!tenantEmail) {
+      return res.status(400).send("Missing tenant email.");
+    }
+
+    const tenantDisplay = escapeHtml(tenantName(tenant));
+    const data = {
+      tenantName: tenantDisplay,
+      tenantEmail: escapeHtml(tenantEmail),
+      tenantPhone: escapeHtml(tenant.phone || "Not provided"),
+      tenantUnit: escapeHtml(tenant.unit || "Not provided"),
+      facilityName: escapeHtml(facility.name || "Facility"),
+      clientName: escapeHtml(client.name || "Client"),
+      panelUrl: escapeHtml(req.body?.panelUrl || process.env.PAF_PANEL_HOST || ""),
+      PAF_FB_PAGE: process.env.PAF_FB_PAGE,
+    };
+
+    const results = [];
+    await sendHtmlEmail(
+      tenantEmail,
+      "We received your tenant portal access request",
+      "tenant_access_confirmation.html",
+      data,
+    );
+    results.push({ type: "tenant", to: tenantEmail, status: "sent" });
+
+    if (reviewerRecipients.length) {
+      await sendHtmlEmail(
+        reviewerRecipients.join(","),
+        `Tenant access request for ${facility.name || "facility portal"}`,
+        "tenant_access_review.html",
+        data,
+      );
+      results.push({
+        type: managerRecipients.length ? "facility-manager" : "client-rep",
+        to: reviewerRecipients,
+        status: "sent",
+      });
+    } else {
+      results.push({
+        type: "reviewer",
+        status: "skipped",
+        reason: "No reviewer email",
+      });
+    }
+
+    res.status(200).json({ ok: true, results });
+  } catch (e) {
+    console.error("tenant-access-request-email failed", e);
+    res.status(500).send(e.toString());
+  }
+});
+
 /** -----------------------
  * Service company email + mini-console
  * ---------------------- */

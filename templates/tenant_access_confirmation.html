@@ -1,0 +1,40 @@
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body{font-family:Arial,sans-serif;font-size:15px;color:#27313f;background:#f6f8fb;margin:0;padding:24px}
+    .container{background:#fff;border:1px solid #d9dee7;border-radius:8px;padding:28px;max-width:620px;margin:auto}
+    .meta{background:#f3f6f9;border:1px solid #d9dee7;border-radius:6px;padding:14px;margin:20px 0}
+    .footer{font-size:13px;color:#667085;border-top:1px solid #e5e7eb;padding-top:16px;margin-top:28px}
+    a{color:#1a73e8;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <p>Dear {{tenantName}},</p>
+
+    <p>
+      We received your tenant portal access request for <strong>{{facilityName}}</strong>.
+      Your request is awaiting review, and you should receive a response soon.
+    </p>
+
+    <div class="meta">
+      <p><strong>Email:</strong> {{tenantEmail}}</p>
+      <p><strong>Unit:</strong> {{tenantUnit}}</p>
+      <p><strong>Phone:</strong> {{tenantPhone}}</p>
+    </div>
+
+    <p>
+      Once your request is approved, you will be able to sign in and submit work requests through the facility portal.
+    </p>
+
+    <p>Thank you for using Predictaf.</p>
+    <p><strong>The Predictaf Team</strong></p>
+
+    <div class="footer">
+      <p>Please do not reply to this email. Contact your facility office if your request needs urgent attention.</p>
+      <p><strong>Contact Us:</strong> <a href="mailto:support@predictiveaf.com">support@predictiveaf.com</a></p>
+    </div>
+  </div>
+</body>
+</html>
