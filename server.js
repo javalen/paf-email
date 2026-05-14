@@ -649,6 +649,7 @@ const verifyClient = async (id, backend) => {
 };
 
 const verifyUserAndClient = async (email, host) => {
+  console.log("Verify User and Client", email, host);
   try {
     const clientpb = new PocketBase(host);
     await clientpb
@@ -681,6 +682,7 @@ const sendVerificaitonSuccessEmail = (to, name, client) => {
       to,
       name,
       client,
+      shortname,
     })
     .catch((error) =>
       console.error("Error sending verify success email", error),
@@ -691,7 +693,12 @@ app.get("/verify-email", async (req, res) => {
   try {
     const { token, host } = req.query;
     const { client, user } = await verifyUserAndClient(token, host);
-    sendVerificaitonSuccessEmail(token, user.name, client.name);
+    sendVerificaitonSuccessEmail(
+      token,
+      user.name,
+      client.name,
+      client.shortname,
+    );
 
     const html = renderTemplate("client_verification_success.html", {
       name: user.name,
@@ -707,7 +714,7 @@ app.get("/verify-email", async (req, res) => {
 
 app.post("/send-verify-success", async (req, res) => {
   try {
-    const { client, to, name } = req.body;
+    const { client, to, name, shortname } = req.body;
     await sendHtmlEmail(
       to,
       "PAF Verification Success!",
@@ -715,6 +722,7 @@ app.post("/send-verify-success", async (req, res) => {
       {
         name,
         client,
+        shortname,
         PAF_PANEL_HOST: process.env.PAF_PANEL_HOST,
         PAF_FB_PAGE: process.env.PAF_FB_PAGE,
       },
@@ -807,7 +815,9 @@ app.get("/new-user/:id", async (req, res) => {
       });
     }
 
-    return res.status(200).json({ ok: true, newUser: publicNewUserPayload(record) });
+    return res
+      .status(200)
+      .json({ ok: true, newUser: publicNewUserPayload(record) });
   } catch (error) {
     console.log(`Error getting new user invite ${error}`);
     return res.status(404).json({
@@ -847,7 +857,8 @@ app.post("/new-user/:id/change-password", async (req, res) => {
     if (!userId || !personelId) {
       return res.status(422).json({
         ok: false,
-        message: "Invite record is missing the linked user or personnel record.",
+        message:
+          "Invite record is missing the linked user or personnel record.",
       });
     }
 
@@ -1006,7 +1017,9 @@ app.post("/tenant-access-request-email", async (req, res) => {
     const facility = req.body?.facility || {};
     const client = req.body?.client || {};
     const clientRep = req.body?.clientRep || {};
-    const managerRecipients = uniqueEmailList(req.body?.managerRecipients || []);
+    const managerRecipients = uniqueEmailList(
+      req.body?.managerRecipients || [],
+    );
     const tenantEmail = safeEmail(tenant.email);
     const clientRepEmail = safeEmail(clientRep.email);
     let reviewerRecipients = [];
@@ -1028,7 +1041,9 @@ app.post("/tenant-access-request-email", async (req, res) => {
       tenantUnit: escapeHtml(tenant.unit || "Not provided"),
       facilityName: escapeHtml(facility.name || "Facility"),
       clientName: escapeHtml(client.name || "Client"),
-      panelUrl: escapeHtml(req.body?.panelUrl || process.env.PAF_PANEL_HOST || ""),
+      panelUrl: escapeHtml(
+        req.body?.panelUrl || process.env.PAF_PANEL_HOST || "",
+      ),
       PAF_FB_PAGE: process.env.PAF_FB_PAGE,
     };
 
