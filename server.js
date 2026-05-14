@@ -15,6 +15,7 @@ const { pbFileUrl, fmtD, validateAndFormatPhoneNumber } = require("./lib/fmt");
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
+app.use("/assets", express.static(path.join(__dirname, "assets")));
 
 const pb = new PocketBase(process.env.PB_HOST);
 const pbMstr = new PocketBase(process.env.PB_MSTR_HOST);
@@ -757,6 +758,7 @@ app.post("/send-new-user-email", async (req, res) => {
         facility,
         verificationLink,
         PAF_FB_PAGE: process.env.PAF_FB_PAGE,
+        PAF_MAIL_HOST: process.env.PAF_MAIL_HOST?.replace(/\/$/, "") || "",
       },
     );
     res.status(200).send("Email sent");
