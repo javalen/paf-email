@@ -637,10 +637,11 @@ app.post("/send-welcome-email", async (req, res) => {
 // Verification success page + email trigger
 const verifyClient = async (id, backend) => {
   try {
-    console.log("Verify Client");
+    console.log("Verify Client", id, backend.baseUrl);
     const client = await backend
       .collection("client")
       .getFirstListItem(`manager="${id}"`);
+    console.log("Found client for user in client PB", client.id);
     return backend.collection("client").update(client.id, { verified: true });
   } catch (error) {
     console.log(`Error verifying Client ${error}`);
@@ -655,15 +656,15 @@ const verifyUserAndClient = async (email, host) => {
     await clientpb
       .collection("_superusers")
       .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
-
+    console.log("Authenticated to client PB");
     const user = await clientpb
       .collection("users")
       .getFirstListItem(`email="${email}"`);
-
+    console.log("Found user in client PB", user.id);
     const personel = await clientpb
       .collection("personel")
       .getFirstListItem(`user="${user.id}"`);
-
+    console.log("Found personnel record in client PB", personel.id);
     await clientpb
       .collection("personel")
       .update(personel.id, { verified: true });
@@ -676,7 +677,7 @@ const verifyUserAndClient = async (email, host) => {
   }
 };
 
-const sendVerificaitonSuccessEmail = (to, name, client) => {
+const sendVerificaitonSuccessEmail = (to, name, client, shortname) => {
   axios
     .post(`${process.env.PAF_MAIL_HOST}/send-verify-success`, {
       to,
@@ -703,11 +704,13 @@ app.get("/verify-email", async (req, res) => {
     const html = renderTemplate("client_verification_success.html", {
       name: user.name,
       client: client.name,
+      shortname: client.shortname,
       PAF_PANEL_HOST: process.env.PAF_PANEL_HOST,
       PAF_FB_PAGE: process.env.PAF_FB_PAGE,
     });
+
     res.status(200).send(html);
-  } catch {
+  } catch (error) {
     res.status(500).send("Unable to verify email.");
   }
 });
