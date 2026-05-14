@@ -678,6 +678,7 @@ const verifyUserAndClient = async (email, host) => {
 };
 
 const sendVerificaitonSuccessEmail = (to, name, client, shortname) => {
+  console.log("Sending verification success email to ", shortname, to);
   axios
     .post(`${process.env.PAF_MAIL_HOST}/send-verify-success`, {
       to,
@@ -718,6 +719,7 @@ app.get("/verify-email", async (req, res) => {
 app.post("/send-verify-success", async (req, res) => {
   try {
     const { client, to, name, shortname } = req.body;
+    console.log("Sending verification success email to ", shortname, to);
     await sendHtmlEmail(
       to,
       "PAF Verification Success!",
