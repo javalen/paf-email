@@ -24,6 +24,67 @@ pbMstr.autoCancellation(false);
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+function normalizeBaseUrl(value = "") {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function numericCost(value) {
+  const parsed = Number(String(value || "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isFinalServiceStatus(value) {
+  const status = String(value || "").trim().toLowerCase();
+  return status === "complete" || status === "closed";
+}
+
+async function triggerReserveIntelligenceForVendorCompletion(record, completedBy = "") {
+  const baseUrl = normalizeBaseUrl(process.env.PAF_CLIENTS_SVR_URL || "");
+  const apiKey = String(
+    process.env.PAF_CLIENTS_SVR_API_KEY ||
+      process.env.CLIENTS_SVR_API_KEY ||
+      process.env.PAF_CLIENTS_API_KEY ||
+      "",
+  ).trim();
+  if (!baseUrl || !apiKey || !record?.id) return;
+  if (!isFinalServiceStatus(record.status) || numericCost(record.cost) <= 0) return;
+
+  try {
+    await axios.post(
+      `${baseUrl}/reserve-intelligence/internal/events`,
+      {
+        regionPbUrl: process.env.PB_HOST,
+        sourceCollection: "service_history",
+        sourceRecordId: record.id,
+        systemId: record.system || "",
+        facilityId: record.facility || "",
+        triggerType: "vendor_service_request_completed",
+        eventType: "service_record",
+        reason: "Vendor completed a service request and supplied the final cost.",
+        requestedBy: "vendor-service",
+        requestedByName: completedBy || "Vendor Service",
+        metadata: {
+          completed_by: completedBy || "",
+          service_status: record.status || "",
+          final_cost: numericCost(record.cost),
+        },
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+        },
+        timeout: 15000,
+      },
+    );
+  } catch (error) {
+    console.warn(
+      "Reserve Intelligence vendor completion trigger failed",
+      error?.response?.data || error?.message || error,
+    );
+  }
+}
+
 /** Nodemailer transport */
 const transporter = nodemailer.createTransport({
   host: "s1099.usc1.mysecurecloudhost.com",
@@ -1975,7 +2036,7 @@ app.post(
         const parsed = Number(cost);
         if (!isNaN(parsed) && parsed >= 0) update["cost"] = parsed;
       }
-      await pb.collection("service_history").update(req.params.id, update);
+      const updatedService = await pb.collection("service_history").update(req.params.id, update);
 
       // Add system comment
       try {
@@ -1988,6 +2049,8 @@ app.post(
           "comments+": [c.id],
         });
       } catch {}
+
+      await triggerReserveIntelligenceForVendorCompletion(updatedService, name);
 
       res.redirect(`/service/${req.params.id}`);
     } catch (e) {
