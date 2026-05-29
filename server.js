@@ -28,6 +28,21 @@ function normalizeBaseUrl(value = "") {
   return String(value || "").trim().replace(/\/+$/, "");
 }
 
+function boolLabel(value) {
+  return value ? "yes" : "no";
+}
+
+function logReserveTrigger(stage, details = {}) {
+  console.log(
+    `[Reserve Intelligence vendor completion] ${stage}`,
+    JSON.stringify(details),
+  );
+}
+
+function logServiceEmail(stage, details = {}) {
+  console.log(`[Service company email] ${stage}`, JSON.stringify(details));
+}
+
 function numericCost(value) {
   const parsed = Number(String(value || "").replace(/[^0-9.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
@@ -46,29 +61,68 @@ async function triggerReserveIntelligenceForVendorCompletion(record, completedBy
       process.env.PAF_CLIENTS_API_KEY ||
       "",
   ).trim();
-  if (!baseUrl || !apiKey || !record?.id) return;
-  if (!isFinalServiceStatus(record.status) || numericCost(record.cost) <= 0) return;
+  const endpoint = `${baseUrl}/reserve-intelligence/internal/events`;
+  const finalCost = numericCost(record?.cost);
+  const status = record?.status || "";
+
+  if (!record?.id) {
+    logReserveTrigger("skipped", { reason: "missing service record id" });
+    return;
+  }
+  if (!baseUrl || !apiKey) {
+    logReserveTrigger("skipped", {
+      reason: "missing configuration",
+      hasBaseUrl: boolLabel(Boolean(baseUrl)),
+      hasApiKey: boolLabel(Boolean(apiKey)),
+      serviceRecordId: record.id,
+      status,
+      finalCost,
+    });
+    return;
+  }
+  if (!isFinalServiceStatus(status) || finalCost <= 0) {
+    logReserveTrigger("skipped", {
+      reason: "service request is not in a final-cost state",
+      serviceRecordId: record.id,
+      status,
+      finalCost,
+    });
+    return;
+  }
+
+  const payload = {
+    regionPbUrl: process.env.PB_HOST,
+    sourceCollection: "service_history",
+    sourceRecordId: record.id,
+    systemId: record.system || "",
+    facilityId: record.facility || "",
+    triggerType: "vendor_service_request_completed",
+    eventType: "service_record",
+    reason: "Vendor completed a service request and supplied the final cost.",
+    requestedBy: "vendor-service",
+    requestedByName: completedBy || "Vendor Service",
+    metadata: {
+      completed_by: completedBy || "",
+      service_status: status,
+      final_cost: finalCost,
+    },
+  };
+
+  logReserveTrigger("sending", {
+    endpoint,
+    hasApiKey: boolLabel(Boolean(apiKey)),
+    serviceRecordId: record.id,
+    systemId: payload.systemId,
+    facilityId: payload.facilityId,
+    status,
+    finalCost,
+    regionPbUrl: payload.regionPbUrl,
+  });
 
   try {
-    await axios.post(
-      `${baseUrl}/reserve-intelligence/internal/events`,
-      {
-        regionPbUrl: process.env.PB_HOST,
-        sourceCollection: "service_history",
-        sourceRecordId: record.id,
-        systemId: record.system || "",
-        facilityId: record.facility || "",
-        triggerType: "vendor_service_request_completed",
-        eventType: "service_record",
-        reason: "Vendor completed a service request and supplied the final cost.",
-        requestedBy: "vendor-service",
-        requestedByName: completedBy || "Vendor Service",
-        metadata: {
-          completed_by: completedBy || "",
-          service_status: record.status || "",
-          final_cost: numericCost(record.cost),
-        },
-      },
+    const response = await axios.post(
+      endpoint,
+      payload,
       {
         headers: {
           "Content-Type": "application/json",
@@ -77,11 +131,20 @@ async function triggerReserveIntelligenceForVendorCompletion(record, completedBy
         timeout: 15000,
       },
     );
+    logReserveTrigger("completed", {
+      serviceRecordId: record.id,
+      httpStatus: response.status,
+      response: response.data,
+    });
   } catch (error) {
-    console.warn(
-      "Reserve Intelligence vendor completion trigger failed",
-      error?.response?.data || error?.message || error,
-    );
+    logReserveTrigger("failed", {
+      endpoint,
+      serviceRecordId: record.id,
+      httpStatus: error?.response?.status || null,
+      code: error?.code || "",
+      message: error?.message || "",
+      response: error?.response?.data || null,
+    });
   }
 }
 
@@ -1159,9 +1222,27 @@ app.post("/tenant-access-request-email", async (req, res) => {
  * Body: { record: <service_history with expand>, to?: string }
  */
 app.post("/email-service-co", async (req, res) => {
+  const requestId =
+    req.get("x-request-id") ||
+    req.get("x-render-request-id") ||
+    `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   try {
     const payload = req.body?.record || req.body;
+    logServiceEmail("received", {
+      requestId,
+      hasPayload: boolLabel(Boolean(payload)),
+      serviceRecordId: payload?.id || "",
+      payloadHasExpand: boolLabel(Boolean(payload?.expand)),
+      explicitTo: boolLabel(Boolean(req.body?.to)),
+      pbHost: process.env.PB_HOST || "",
+      mailHost: process.env.PAF_MAIL_HOST || "",
+      hasFallbackServiceEmail: boolLabel(Boolean(process.env.FALLBACK_SERVICE_EMAIL)),
+    });
     if (!payload || !payload.id) {
+      logServiceEmail("rejected", {
+        requestId,
+        reason: "missing service_history record id",
+      });
       return res
         .status(400)
         .send("Missing service_history record (id required).");
@@ -1176,19 +1257,48 @@ app.post("/email-service-co", async (req, res) => {
           expand: "facility,servicer,system",
         });
 
+    logServiceEmail("record loaded", {
+      requestId,
+      serviceRecordId: rec.id,
+      status: rec.status || "",
+      systemId: rec.system || "",
+      facilityId: rec.facility || "",
+      servicerId: rec.servicer || "",
+      hasExpandFacility: boolLabel(Boolean(rec.expand?.facility)),
+      hasExpandServicer: boolLabel(Boolean(rec.expand?.servicer)),
+      hasExpandSystem: boolLabel(Boolean(rec.expand?.system)),
+      servicerEmail: safeEmail(rec.expand?.servicer?.email) || "",
+    });
+
     const to =
       req.body?.to ||
       rec.expand?.servicer?.email ||
       process.env.FALLBACK_SERVICE_EMAIL;
 
-    if (!to)
+    if (!to) {
+      logServiceEmail("rejected", {
+        requestId,
+        serviceRecordId: rec.id,
+        reason: "missing destination email",
+      });
       return res.status(400).send("No destination email for service company.");
+    }
 
     const pageUrl = `${process.env.PAF_MAIL_HOST.replace(/\/$/, "")}/service/${
       rec.id
     }`;
 
     const view = buildServiceRecordView(rec);
+    logServiceEmail("sending", {
+      requestId,
+      serviceRecordId: rec.id,
+      to: safeEmail(to),
+      subject: `Service Request ${view.reqNumber} - ${view.facility.name}`,
+      pageUrl,
+      facilityName: view.facility?.name || "",
+      systemName: view.system?.name || "",
+      servicerName: view.servicer?.name || "",
+    });
     const html = renderTemplate("service_email.html", { ...view, pageUrl });
 
     await sendHtmlEmail(
@@ -1201,10 +1311,27 @@ app.post("/email-service-co", async (req, res) => {
       },
     );
 
+    logServiceEmail("sent", {
+      requestId,
+      serviceRecordId: rec.id,
+      to: safeEmail(to),
+    });
     res.status(200).send("Email sent");
   } catch (err) {
-    console.error("email-service-co failed", err);
-    res.status(500).send("Internal error sending email.");
+    logServiceEmail("failed", {
+      requestId,
+      message: err?.message || String(err),
+      status: err?.status || err?.response?.status || "",
+      data: err?.data || err?.response?.data || null,
+      stack: err?.stack || "",
+    });
+    res
+      .status(500)
+      .send(
+        process.env.NODE_ENV === "production"
+          ? "Internal error sending email."
+          : `Internal error sending email: ${err?.message || String(err)}`,
+      );
   }
 });
 
@@ -2220,5 +2347,19 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(
     `Server is running on port ${PORT} host is ${process.env.PB_HOST}`,
+  );
+  console.log(
+    "[Reserve Intelligence vendor completion] config",
+    JSON.stringify({
+      clientsSvrUrl: normalizeBaseUrl(process.env.PAF_CLIENTS_SVR_URL || ""),
+      hasClientsSvrApiKey: boolLabel(
+        Boolean(
+          process.env.PAF_CLIENTS_SVR_API_KEY ||
+            process.env.CLIENTS_SVR_API_KEY ||
+            process.env.PAF_CLIENTS_API_KEY,
+        ),
+      ),
+      pbHost: process.env.PB_HOST || "",
+    }),
   );
 });
