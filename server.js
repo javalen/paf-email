@@ -48,6 +48,188 @@ function numericCost(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function optionalString(value) {
+  const text = String(value || "").trim();
+  return text || undefined;
+}
+
+function parseCompletionLineItems(value) {
+  let parsed = [];
+  try {
+    parsed = JSON.parse(String(value || "[]"));
+  } catch {
+    parsed = [];
+  }
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed
+    .map((item) => {
+      const description = String(item?.description || "").trim();
+      if (!description) return null;
+      const lineType = String(item?.line_type || "other").trim() || "other";
+      const quantity = numericCost(item?.quantity || 1) || 1;
+      const unitCost = numericCost(item?.unit_cost);
+      const laborCost = numericCost(item?.labor_cost);
+      const totalCost = numericCost(item?.total_cost || unitCost * quantity + laborCost);
+      return {
+        line_type: lineType,
+        description,
+        part_name: optionalString(item?.part_name),
+        quantity,
+        unit_cost: unitCost,
+        labor_cost: laborCost,
+        total_cost: totalCost,
+        is_replacement: Boolean(item?.is_replacement),
+        is_routine: Boolean(item?.is_routine),
+        reserve_relevance: optionalString(item?.reserve_relevance) || "low",
+        vendor_notes: optionalString(item?.vendor_notes),
+      };
+    })
+    .filter(Boolean);
+}
+
+function reserveTextField(name, required = false) {
+  return { name, type: "text", required, min: 0, max: 0, pattern: "", autogeneratePattern: "" };
+}
+
+function reserveNumberField(name) {
+  return { name, type: "number", required: false, min: null, max: null, onlyInt: false };
+}
+
+function reserveBoolField(name) {
+  return { name, type: "bool", required: false };
+}
+
+function reserveDateField(name) {
+  return { name, type: "date", required: false, min: "", max: "" };
+}
+
+function reserveJsonField(name) {
+  return { name, type: "json", required: false, maxSize: 2000000 };
+}
+
+function reserveSelectField(name, values, required = false) {
+  return { name, type: "select", required, maxSelect: 1, values };
+}
+
+function reserveRelationField(name, collectionId, required = false) {
+  return {
+    name,
+    type: "relation",
+    collectionId,
+    required,
+    minSelect: required ? 1 : 0,
+    maxSelect: 1,
+    cascadeDelete: false,
+  };
+}
+
+async function collectionId(name) {
+  return (await pb.collections.getOne(name)).id;
+}
+
+async function ensureServiceCompletionLineItemsCollection() {
+  const ids = {
+    client: await collectionId("client"),
+    facility: await collectionId("facility"),
+    system: await collectionId("subsys"),
+    serviceHistory: await collectionId("service_history"),
+  };
+  const fields = [
+    reserveRelationField("client", ids.client),
+    reserveRelationField("facility", ids.facility),
+    reserveRelationField("system", ids.system),
+    reserveRelationField("service_history", ids.serviceHistory, true),
+    reserveSelectField("line_type", [
+      "replaced_part",
+      "repair",
+      "cleaning",
+      "inspection",
+      "adjustment",
+      "diagnostic",
+      "other",
+    ]),
+    reserveTextField("description", true),
+    reserveTextField("part_name"),
+    reserveNumberField("quantity"),
+    reserveNumberField("unit_cost"),
+    reserveNumberField("labor_cost"),
+    reserveNumberField("total_cost"),
+    reserveBoolField("is_replacement"),
+    reserveBoolField("is_routine"),
+    reserveSelectField("reserve_relevance", ["none", "low", "medium", "high"]),
+    reserveTextField("vendor_notes"),
+    reserveSelectField("created_by_source", ["vendor_completion", "manager_entry", "system_import"]),
+    reserveTextField("completed_by_name"),
+    reserveDateField("completed_at"),
+    reserveJsonField("metadata"),
+  ];
+
+  try {
+    const existing = await pb.collections.getOne("service_completion_line_items");
+    const existingNames = new Set((existing.fields || []).map((field) => field.name));
+    const missing = fields.filter((field) => !existingNames.has(field.name));
+    if (missing.length) {
+      await pb.collections.update(existing.id, {
+        fields: [...(existing.fields || []), ...missing],
+      });
+    }
+  } catch {
+    await pb.collections.create({
+      type: "base",
+      name: "service_completion_line_items",
+      listRule: '@request.auth.id != ""',
+      viewRule: '@request.auth.id != ""',
+      createRule: '@request.auth.id != ""',
+      updateRule: '@request.auth.id != ""',
+      deleteRule: '@request.auth.id != ""',
+      fields,
+    });
+  }
+}
+
+async function createServiceCompletionLineItems(serviceRecord, items, completedBy, completedAt) {
+  if (!items.length) return [];
+  try {
+    await ensureServiceCompletionLineItemsCollection();
+  } catch (error) {
+    console.error("[Service completion line items] schema ensure failed", error?.message || error);
+  }
+
+  const system = serviceRecord?.expand?.system || {};
+  const systemId = serviceRecord?.system || system?.id || "";
+  const facilityId = serviceRecord?.facility || system?.facility || serviceRecord?.fac_id || "";
+  const clientId = serviceRecord?.client || system?.client_id || "";
+  const created = [];
+
+  for (const item of items) {
+    const payload = {
+      client: clientId || undefined,
+      facility: facilityId || undefined,
+      system: systemId || undefined,
+      service_history: serviceRecord.id,
+      ...item,
+      created_by_source: "vendor_completion",
+      completed_by_name: completedBy || "",
+      completed_at: completedAt ? new Date(completedAt).toISOString() : new Date().toISOString(),
+      metadata: {
+        source: "public_vendor_completion_page",
+        service_status: serviceRecord.status || "",
+      },
+    };
+    try {
+      created.push(await pb.collection("service_completion_line_items").create(payload));
+    } catch (error) {
+      console.error("[Service completion line items] create failed", {
+        serviceRecordId: serviceRecord.id,
+        message: error?.message || String(error),
+        data: error?.data || null,
+      });
+    }
+  }
+  return created;
+}
+
 function isFinalServiceStatus(value) {
   const status = String(value || "").trim().toLowerCase();
   return status === "complete" || status === "closed";
@@ -2095,9 +2277,10 @@ app.post(
   "/service/:id/complete",
   upload.single("invoice"),
   async (req, res) => {
-    const { name, date, cost, warranty, covered, expires } = req.body || {};
+    const { name, date, cost, warranty, covered, expires, line_items_json } = req.body || {};
     if (!name || !date)
       return res.status(400).send("Name and Date are required.");
+    const completionLineItems = parseCompletionLineItems(line_items_json);
 
     await pb
       .collection("_superusers")
@@ -2163,12 +2346,23 @@ app.post(
         const parsed = Number(cost);
         if (!isNaN(parsed) && parsed >= 0) update["cost"] = parsed;
       }
-      const updatedService = await pb.collection("service_history").update(req.params.id, update);
+      await pb.collection("service_history").update(req.params.id, update);
+      const updatedService = await pb.collection("service_history").getOne(req.params.id, {
+        expand: "servicer,system",
+      });
+      const createdLineItems = await createServiceCompletionLineItems(
+        updatedService,
+        completionLineItems,
+        name,
+        date,
+      );
 
       // Add system comment
       try {
         const c = await pb.collection("service_comment").create({
-          comment: "Vendor completed work.",
+          comment: createdLineItems.length
+            ? `Vendor completed work and submitted ${createdLineItems.length} completion line item(s).`
+            : "Vendor completed work.",
           service_id: req.params.id,
           user: name,
         });

@@ -37,10 +37,17 @@
 
   /* modal */
   .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:40;padding:16px}
-  .modal{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);width:min(92vw,560px);overflow:hidden}
+  .modal{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);width:min(92vw,760px);overflow:hidden}
   .modal-h{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;padding:10px 14px}
-  .modal-b{padding:14px 16px} /* extra right padding */
+  .modal-b{padding:14px 16px;max-height:78vh;overflow:auto} /* extra right padding */
   .modal-backdrop.show{display:flex}
+  .line-items{border:1px solid #e5e7eb;border-radius:10px;margin-top:10px;overflow:hidden}
+  .line-item{padding:12px;border-top:1px solid #e5e7eb;background:#fff}
+  .line-item:first-child{border-top:0}
+  .line-item-h{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}
+  .line-item-title{font-weight:700;font-size:13px}
+  .icon-btn{border:1px solid #d1d5db;background:#fff;color:#111827;border-radius:8px;padding:6px 9px;cursor:pointer}
+  .icon-btn:hover{background:#f3f4f6}
 </style>
 </head>
 <body data-accepted="{{accepted}}" data-status="{{status}}" data-id="{{id}}" data-cost="{{cost}}">
@@ -200,6 +207,18 @@
           <label style="margin-top:10px">Cost (USD)</label>
           <input name="cost" type="number" step="0.01" min="0" placeholder="0.00" value="{{cost}}"/>
 
+          <div style="margin-top:12px">
+            <div class="row" style="justify-content:space-between;align-items:flex-end">
+              <div>
+                <label style="margin:0 0 4px">Work Completed</label>
+                <div class="hint">Add parts replaced and services performed so the Reserve Study can be reviewed accurately.</div>
+              </div>
+              <button class="btn secondary" id="addLineItem" type="button">Add Line Item</button>
+            </div>
+            <div class="line-items" id="lineItems"></div>
+            <input type="hidden" name="line_items_json" id="lineItemsJson" value="[]"/>
+          </div>
+
           <label style="margin-top:10px">Upload Invoice (optional)</label>
           <input type="file" name="invoice"/>
 
@@ -287,6 +306,114 @@
   const existingCost = (root.dataset.cost || "").trim();
 const completeForm = document.getElementById('completeForm');
 const costInput = completeForm ? completeForm.querySelector('input[name="cost"]') : null;
+const lineItemsRoot = document.getElementById('lineItems');
+const lineItemsJson = document.getElementById('lineItemsJson');
+const addLineItemBtn = document.getElementById('addLineItem');
+let lineItemCounter = 0;
+
+function lineItemTemplate(index) {
+  return `
+    <div class="line-item" data-line-item>
+      <div class="line-item-h">
+        <div class="line-item-title">Line item ${index}</div>
+        <button class="icon-btn" type="button" data-remove-line>Remove</button>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label>Type</label>
+          <select data-field="line_type">
+            <option value="replaced_part">Replaced part</option>
+            <option value="repair">Repair</option>
+            <option value="cleaning">Cleaning</option>
+            <option value="inspection">Inspection</option>
+            <option value="adjustment">Adjustment</option>
+            <option value="diagnostic">Diagnostic</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label>Reserve relevance</label>
+          <select data-field="reserve_relevance">
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+      </div>
+      <label>Description *</label>
+      <input data-field="description" placeholder="Replaced main o-ring, cleaned cartridges, replaced pressure gauge"/>
+      <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div>
+          <label>Part name</label>
+          <input data-field="part_name" placeholder="Main o-ring"/>
+        </div>
+        <div>
+          <label>Quantity</label>
+          <input data-field="quantity" type="number" step="0.01" min="0" value="1"/>
+        </div>
+        <div>
+          <label>Line cost</label>
+          <input data-field="total_cost" type="number" step="0.01" min="0" placeholder="0.00"/>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label style="display:flex;align-items:center;gap:6px;margin:0">
+          <input data-field="is_replacement" type="checkbox" style="width:auto"/>
+          Item was replaced
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin:0">
+          <input data-field="is_routine" type="checkbox" style="width:auto"/>
+          Routine maintenance
+        </label>
+      </div>
+      <label>Notes</label>
+      <textarea data-field="vendor_notes" placeholder="Optional notes for the property manager"></textarea>
+    </div>
+  `;
+}
+
+function addLineItem(defaultType) {
+  lineItemCounter += 1;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = lineItemTemplate(lineItemCounter);
+  const node = wrap.firstElementChild;
+  lineItemsRoot.appendChild(node);
+  if (defaultType) node.querySelector('[data-field="line_type"]').value = defaultType;
+  syncLineItems();
+}
+
+function readLineItems() {
+  return Array.from(lineItemsRoot.querySelectorAll('[data-line-item]')).map((node) => {
+    const get = (field) => node.querySelector(`[data-field="${field}"]`);
+    return {
+      line_type: get('line_type')?.value || 'other',
+      reserve_relevance: get('reserve_relevance')?.value || 'low',
+      description: (get('description')?.value || '').trim(),
+      part_name: (get('part_name')?.value || '').trim(),
+      quantity: Number(get('quantity')?.value || 1),
+      total_cost: Number(get('total_cost')?.value || 0),
+      is_replacement: Boolean(get('is_replacement')?.checked),
+      is_routine: Boolean(get('is_routine')?.checked),
+      vendor_notes: (get('vendor_notes')?.value || '').trim()
+    };
+  }).filter((item) => item.description);
+}
+
+function syncLineItems() {
+  if (lineItemsJson) lineItemsJson.value = JSON.stringify(readLineItems());
+}
+
+addLineItemBtn?.addEventListener('click', () => addLineItem());
+lineItemsRoot?.addEventListener('input', syncLineItems);
+lineItemsRoot?.addEventListener('change', syncLineItems);
+lineItemsRoot?.addEventListener('click', (event) => {
+  const btn = event.target.closest('[data-remove-line]');
+  if (!btn) return;
+  btn.closest('[data-line-item]')?.remove();
+  syncLineItems();
+});
+completeForm?.addEventListener('submit', syncLineItems);
 
 
 
@@ -338,7 +465,10 @@ const costInput = completeForm ? completeForm.querySelector('input[name="cost"]'
 
   // Complete modal + warranty toggle
   const completeModal = document.getElementById('completeModal');
-  btnComplete?.addEventListener('click', () => completeModal.classList.add('show'));
+  btnComplete?.addEventListener('click', () => {
+    if (lineItemsRoot && !lineItemsRoot.querySelector('[data-line-item]')) addLineItem('repair');
+    completeModal.classList.add('show');
+  });
   // ✅ Prefill cost from record when reopening + completing again
 if (costInput && (!costInput.value || String(costInput.value).trim() === "") && existingCost !== "") {
   costInput.value = existingCost;
