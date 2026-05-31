@@ -127,6 +127,23 @@ async function collectionId(name) {
   return (await pb.collections.getOne(name)).id;
 }
 
+async function ensureServiceHistoryRejectionFields() {
+  const fields = [
+    reserveTextField("rejected_by"),
+    reserveTextField("rejected_reason"),
+    reserveDateField("rejected_date"),
+  ];
+
+  const existing = await pb.collections.getOne("service_history");
+  const existingNames = new Set((existing.fields || []).map((field) => field.name));
+  const missing = fields.filter((field) => !existingNames.has(field.name));
+  if (!missing.length) return;
+
+  await pb.collections.update(existing.id, {
+    fields: [...(existing.fields || []), ...missing],
+  });
+}
+
 async function ensureServiceCompletionLineItemsCollection() {
   const ids = {
     client: await collectionId("client"),
@@ -778,6 +795,9 @@ function buildServiceRecordView(rec) {
     filesHtml,
     commentsHtml,
     cost: rec.cost ?? "",
+    rejected_by: rec.rejected_by || "",
+    rejected_reason: rec.rejected_reason || "",
+    rejected_date: rec.rejected_date ? fmtD(rec.rejected_date) : "",
   };
 }
 
@@ -1431,6 +1451,7 @@ app.post("/email-service-co", async (req, res) => {
     await pb
       .collection("_superusers")
       .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
+    await ensureServiceHistoryRejectionFields();
     const rec = payload.expand
       ? payload
       : await pb.collection("service_history").getOne(payload.id, {
@@ -1521,6 +1542,7 @@ app.get("/service/:id", async (req, res) => {
     await pb
       .collection("_superusers")
       .authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASS);
+    await ensureServiceHistoryRejectionFields();
     const rec = await pb.collection("service_history").getOne(req.params.id, {
       // expand comments so they can be displayed
       expand: "facility,servicer,system,comments",
@@ -2157,6 +2179,65 @@ app.post(
     } catch (e) {
       console.error("Accept failed", e);
       return res.status(500).send("Failed to accept request.");
+    }
+  },
+);
+
+// Reject request
+app.post(
+  "/service/:id/reject",
+  express.urlencoded({ extended: true }),
+  async (req, res) => {
+    const name = String(req.body?.name || "").trim();
+    const reason = String(req.body?.reason || "").trim();
+    if (!name || !reason) {
+      return res.status(400).send("Name and rejection reason are required.");
+    }
+
+    try {
+      await pb
+        .collection("_superusers")
+        .authWithPassword(
+          process.env.PB_ADMIN_EMAIL,
+          process.env.PB_ADMIN_PASS,
+        );
+
+      await ensureServiceHistoryRejectionFields();
+
+      const current = await pb
+        .collection("service_history")
+        .getOne(req.params.id, {
+          fields: "id,status,accepted",
+        });
+
+      const curStatus = (current?.status || "New").trim();
+      if (current?.accepted || curStatus !== "New") {
+        return res.redirect(`/service/${req.params.id}`);
+      }
+
+      await pb.collection("service_history").update(req.params.id, {
+        accepted: false,
+        status: "Rejected",
+        rejected_by: name,
+        rejected_reason: reason,
+        rejected_date: new Date().toISOString(),
+      });
+
+      try {
+        const c = await pb.collection("service_comment").create({
+          comment: `Request rejected: ${reason}`,
+          service_id: req.params.id,
+          user: name,
+        });
+        await pb.collection("service_history").update(req.params.id, {
+          "comments+": [c.id],
+        });
+      } catch {}
+
+      return res.redirect(`/service/${req.params.id}`);
+    } catch (e) {
+      console.error("Reject failed", e);
+      return res.status(500).send("Failed to reject request.");
     }
   },
 );

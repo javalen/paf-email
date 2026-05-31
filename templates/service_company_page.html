@@ -9,6 +9,7 @@
     --card-bg:#fff;--card-br:#e5e7eb;--muted:#6b7280;--ink:#1f2937;
     --btn:#0f766e;--btn-h:#0a5c56;--btn-2:#1f2937;--btn-2h:#111827;
     --ok:#16a34a;--ok-h:#15803d;--blue:#2563eb;--blue-h:#1d4ed8;
+    --danger:#b91c1c;--danger-h:#991b1b;
   }
   *{box-sizing:border-box}
   body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7fb;margin:0;padding:0;color:var(--ink)}
@@ -26,7 +27,10 @@
   .btn.secondary{background:var(--btn-2)} .btn.secondary:hover{background:var(--btn-2h)}
   .btn.ok{background:var(--ok)} .btn.ok:hover{background:var(--ok-h)}
   .btn.blue{background:var(--blue)} .btn.blue:hover{background:var(--blue-h)}
+  .btn.danger{background:var(--danger)} .btn.danger:hover{background:var(--danger-h)}
   .btn:disabled{opacity:.6;cursor:not-allowed}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:7px}
+  @keyframes spin{to{transform:rotate(360deg)}}
   .files{padding-left:18px}
   .hint{font-size:12px;color:#6b7280;margin-top:4px}
 
@@ -99,6 +103,14 @@
   <div class="muted" id="alreadyMsg">
     This request has already been accepted.
   </div>
+  <div id="rejectedDetails" style="display:none;margin-top:10px">
+    <div class="muted small">Rejected by</div>
+    <div><strong>{{rejected_by}}</strong></div>
+    <div class="muted small" style="margin-top:8px">Rejected date</div>
+    <div>{{rejected_date}}</div>
+    <div class="muted small" style="margin-top:8px">Reason</div>
+    <div>{{rejected_reason}}</div>
+  </div>
 </div>
 
 
@@ -119,6 +131,9 @@
         </div>
       </form>
       <div class="hint">Accepting sets the request to <em>Accepted</em> and records your name & planned start date.</div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px">
+        <button class="btn danger" id="btnReject" type="button">Reject Request</button>
+      </div>
     </div>
 
     <!-- Start/Complete action card (visible after acceptance) -->
@@ -160,6 +175,27 @@
           <button class="btn secondary" type="submit">Add Comment</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Reject modal -->
+  <div class="modal-backdrop" id="rejectModal">
+    <div class="modal">
+      <div class="modal-h">
+        <strong>Reject Request</strong>
+        <button class="btn secondary" id="closeReject" type="button" style="padding:4px 10px">×</button>
+      </div>
+      <div class="modal-b">
+        <form id="rejectForm" method="POST" action="/service/{{id}}/reject">
+          <label>Your Name *</label>
+          <input name="name" required placeholder="Your name"/>
+          <label style="margin-top:10px">Reason *</label>
+          <textarea name="reason" required placeholder="Please explain why this request is being rejected"></textarea>
+          <div class="row" style="justify-content:flex-end;margin-top:12px">
+            <button class="btn danger" id="rejectSubmitBtn" type="submit">Reject Request</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -285,7 +321,7 @@
           </div>
 
           <div class="row" style="justify-content:flex-end;margin-top:12px">
-            <button class="btn ok" type="submit">Complete Work</button>
+            <button class="btn ok" id="completeSubmitBtn" type="submit">Complete Work</button>
           </div>
         </form>
       </div>
@@ -301,11 +337,14 @@
   const actionsCard = document.getElementById('actionsCard');
   const btnStart = document.getElementById('btnStart');
   const btnComplete = document.getElementById('btnComplete');
+  const btnReject = document.getElementById('btnReject');
   const alreadyCard = document.getElementById('alreadyCard');
   const alreadyMsg = document.getElementById('alreadyMsg');
+  const rejectedDetails = document.getElementById('rejectedDetails');
   const existingCost = (root.dataset.cost || "").trim();
 const completeForm = document.getElementById('completeForm');
 const costInput = completeForm ? completeForm.querySelector('input[name="cost"]') : null;
+const completeSubmitBtn = document.getElementById('completeSubmitBtn');
 const lineItemsRoot = document.getElementById('lineItems');
 const lineItemsJson = document.getElementById('lineItemsJson');
 const addLineItemBtn = document.getElementById('addLineItem');
@@ -399,7 +438,13 @@ lineItemsRoot?.addEventListener('click', (event) => {
   btn.closest('[data-line-item]')?.remove();
   syncLineItems();
 });
-completeForm?.addEventListener('submit', syncLineItems);
+completeForm?.addEventListener('submit', () => {
+  syncLineItems();
+  if (completeSubmitBtn) {
+    completeSubmitBtn.disabled = true;
+    completeSubmitBtn.innerHTML = '<span class="spinner"></span>Closing Request...';
+  }
+});
 
 
 
@@ -408,6 +453,7 @@ completeForm?.addEventListener('submit', syncLineItems);
     if (v === 'Accepted') return 'This request has already been accepted.';
     if (v === 'In Progress') return 'This request is already in progress.';
     if (v === 'Complete') return 'This request has already been completed.';
+    if (v === 'Rejected') return 'This request has been rejected.';
     if (v && v !== 'New') return `This request is already in status: "${v}".`;
     return '';
   }
@@ -443,6 +489,7 @@ completeForm?.addEventListener('submit', syncLineItems);
       if (alreadyCard) {
         alreadyCard.style.display = 'block';
         if (alreadyMsg) alreadyMsg.textContent = statusMessage(status) || 'This request has already been handled.';
+        if (rejectedDetails && status === 'Rejected') rejectedDetails.style.display = 'block';
       }
     } else {
       // status === New: allow accept
@@ -451,6 +498,22 @@ completeForm?.addEventListener('submit', syncLineItems);
     }
   }
 
+  // Reject modal
+  const rejectModal = document.getElementById('rejectModal');
+  const rejectForm = document.getElementById('rejectForm');
+  const rejectSubmitBtn = document.getElementById('rejectSubmitBtn');
+  btnReject?.addEventListener('click', () => rejectModal.classList.add('show'));
+  document.getElementById('closeReject')?.addEventListener('click', () => rejectModal.classList.remove('show'));
+  rejectModal?.addEventListener('click', (e) => { if (e.target === rejectModal) rejectModal.classList.remove('show'); });
+  rejectForm?.addEventListener('submit', () => {
+    if (rejectSubmitBtn) {
+      rejectSubmitBtn.disabled = true;
+      rejectSubmitBtn.innerHTML = '<span class="spinner"></span>Rejecting Request...';
+    }
+  });
+  if (window.location.hash === '#reject' && status === 'New' && !accepted) {
+    rejectModal.classList.add('show');
+  }
 
   // Start modal
   const startModal = document.getElementById('startModal');
