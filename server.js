@@ -81,7 +81,6 @@ function parseCompletionLineItems(value) {
         total_cost: totalCost,
         is_replacement: Boolean(item?.is_replacement),
         is_routine: Boolean(item?.is_routine),
-        reserve_relevance: optionalString(item?.reserve_relevance) || "low",
         vendor_notes: optionalString(item?.vendor_notes),
       };
     })
@@ -157,7 +156,6 @@ async function ensureServiceCompletionLineItemsCollection() {
     reserveNumberField("total_cost"),
     reserveBoolField("is_replacement"),
     reserveBoolField("is_routine"),
-    reserveSelectField("reserve_relevance", ["none", "low", "medium", "high"]),
     reserveTextField("vendor_notes"),
     reserveSelectField("created_by_source", ["vendor_completion", "manager_entry", "system_import"]),
     reserveTextField("completed_by_name"),

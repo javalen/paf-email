@@ -318,29 +318,16 @@ function lineItemTemplate(index) {
         <div class="line-item-title">Line item ${index}</div>
         <button class="icon-btn" type="button" data-remove-line>Remove</button>
       </div>
-      <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
-        <div>
-          <label>Type</label>
-          <select data-field="line_type">
-            <option value="replaced_part">Replaced part</option>
-            <option value="repair">Repair</option>
-            <option value="cleaning">Cleaning</option>
-            <option value="inspection">Inspection</option>
-            <option value="adjustment">Adjustment</option>
-            <option value="diagnostic">Diagnostic</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <div>
-          <label>Reserve relevance</label>
-          <select data-field="reserve_relevance">
-            <option value="high">High</option>
-            <option value="medium" selected>Medium</option>
-            <option value="low">Low</option>
-            <option value="none">None</option>
-          </select>
-        </div>
-      </div>
+      <label>Type</label>
+      <select data-field="line_type">
+        <option value="replaced_part">Replaced part</option>
+        <option value="repair">Repair</option>
+        <option value="cleaning">Cleaning</option>
+        <option value="inspection">Inspection</option>
+        <option value="adjustment">Adjustment</option>
+        <option value="diagnostic">Diagnostic</option>
+        <option value="other">Other</option>
+      </select>
       <label>Description *</label>
       <input data-field="description" placeholder="Replaced main o-ring, cleaned cartridges, replaced pressure gauge"/>
       <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
@@ -388,7 +375,6 @@ function readLineItems() {
     const get = (field) => node.querySelector(`[data-field="${field}"]`);
     return {
       line_type: get('line_type')?.value || 'other',
-      reserve_relevance: get('reserve_relevance')?.value || 'low',
       description: (get('description')?.value || '').trim(),
       part_name: (get('part_name')?.value || '').trim(),
       quantity: Number(get('quantity')?.value || 1),
@@ -433,10 +419,19 @@ completeForm?.addEventListener('submit', syncLineItems);
     if (alreadyCard) alreadyCard.style.display = 'none';
     actionsCard.style.display = 'block';
 
-    if (status === 'In Progress') {
+    if (status === 'Complete' || status === 'Closed') {
+      btnStart.textContent = 'Reopen Request';
+      btnStart.style.display = 'inline-block';
+      btnStart.disabled = true;
+      btnComplete.style.display = 'none';
+      const hint = actionsCard.querySelector('.hint');
+      if (hint) hint.textContent = 'This request is closed. Reopen Request from Predictaf if additional work is needed.';
+    } else if (status === 'In Progress') {
       btnStart.style.display = 'none';
       btnComplete.style.display = 'inline-block';
     } else {
+      btnStart.textContent = 'Start Working';
+      btnStart.disabled = false;
       btnStart.style.display = 'inline-block';
       btnComplete.style.display = 'none';
     }
@@ -459,7 +454,10 @@ completeForm?.addEventListener('submit', syncLineItems);
 
   // Start modal
   const startModal = document.getElementById('startModal');
-  btnStart?.addEventListener('click', () => startModal.classList.add('show'));
+  btnStart?.addEventListener('click', () => {
+    if (btnStart.disabled) return;
+    startModal.classList.add('show');
+  });
   document.getElementById('closeStart').addEventListener('click', () => startModal.classList.remove('show'));
   startModal.addEventListener('click', (e) => { if (e.target === startModal) startModal.classList.remove('show'); });
 
