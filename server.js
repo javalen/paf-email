@@ -48,6 +48,49 @@ function numericCost(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function normalizeStatusText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isFinalServiceRecord(record) {
+  const status = normalizeStatusText(record?.status || record?.state);
+  return status === "complete" || status === "closed";
+}
+
+async function listServiceHistoryForSystem(systemId) {
+  const id = String(systemId || "").trim();
+  if (!id) return [];
+
+  const filters = [`system="${id}"`, `system_id="${id}"`];
+  let lastError = null;
+
+  for (const filter of filters) {
+    try {
+      return await pb.collection("service_history").getFullList({ filter });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) throw lastError;
+  return [];
+}
+
+async function refreshServiceCostToDateForSystem(systemId) {
+  const id = String(systemId || "").trim();
+  if (!id) return null;
+
+  const services = await listServiceHistoryForSystem(id);
+  const total = Math.round(
+    services
+      .filter(isFinalServiceRecord)
+      .reduce((sum, service) => sum + numericCost(service?.cost), 0) * 100,
+  ) / 100;
+
+  await pb.collection("subsys").update(id, { svc_cost_to_date: total });
+  return total;
+}
+
 function optionalString(value) {
   const text = String(value || "").trim();
   return text || undefined;
@@ -2435,6 +2478,17 @@ app.post(
         name,
         date,
       );
+      const updatedSystemId =
+        updatedService?.system || updatedService?.system_id || updatedService?.expand?.system?.id || "";
+      await refreshServiceCostToDateForSystem(updatedSystemId).catch((rollupError) => {
+        console.warn("[Service completion] Could not refresh system service cost-to-date", {
+          serviceHistoryId: req.params.id,
+          systemId: updatedSystemId,
+          status: rollupError?.status,
+          message: rollupError?.message,
+          data: rollupError?.data || null,
+        });
+      });
 
       // Add system comment
       try {
