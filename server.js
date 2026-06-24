@@ -435,13 +435,19 @@ async function triggerReserveIntelligenceForVendorCompletion(
 }
 
 /** Nodemailer transport */
-const smtpPort = Number(process.env.MAIL_PORT || process.env.TRANSPORT_PORT || 465);
+const smtpPort = Number(
+  process.env.MAIL_PORT || process.env.TRANSPORT_PORT || 465,
+);
 const smtpUser = process.env.MAIL_USER || process.env.TRANSPORT_USER;
 const smtpPass = process.env.MAIL_PW || process.env.TRANSPORT_PASS;
-const smtpFrom = process.env.SMTP_FROM || process.env.MAIL_FROM || "support@predictaf.com";
+const smtpFrom =
+  process.env.SMTP_FROM || process.env.MAIL_FROM || "support@predictaf.com";
 
 const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST || process.env.TRANSPORT_HOST || "s1099.usc1.mysecurecloudhost.com",
+  host:
+    process.env.MAIL_HOST ||
+    process.env.TRANSPORT_HOST ||
+    "s1099.usc1.mysecurecloudhost.com",
   port: smtpPort,
   secure: smtpPort === 465,
   auth: {
@@ -454,7 +460,10 @@ const transporter = nodemailer.createTransport({
 });
 
 console.log("SMTP CONFIG", {
-  host: process.env.MAIL_HOST || process.env.TRANSPORT_HOST || "s1099.usc1.mysecurecloudhost.com",
+  host:
+    process.env.MAIL_HOST ||
+    process.env.TRANSPORT_HOST ||
+    "s1099.usc1.mysecurecloudhost.com",
   port: smtpPort,
   secure: smtpPort === 465,
   user: smtpUser,
@@ -920,6 +929,7 @@ async function sendHtmlEmail(to, subject, templateName, data) {
 
 app.post("/new-lead-email", async (req, res) => {
   try {
+    console.log("new-lead-email request body", req.body);
     const lead = req.body?.lead || req.body || {};
     const to =
       safeEmail(req.body?.to) ||
@@ -970,7 +980,7 @@ app.post("/new-lead-email", async (req, res) => {
         <p style="margin:0 0 16px;">A new website lead was saved.</p>
         <table style="border-collapse:collapse;min-width:320px;">${htmlRows}</table>
       </div>`;
-
+    console.log("Sending new-lead-email to", to, "from", smtpFrom);
     await transporter.sendMail({
       from: smtpFrom,
       to,
@@ -979,7 +989,7 @@ app.post("/new-lead-email", async (req, res) => {
       text,
       html,
     });
-
+    console.log("new-lead-email sent successfully to", to);
     res.status(200).json({ ok: true, to });
   } catch (e) {
     console.error("new-lead-email failed", e);
