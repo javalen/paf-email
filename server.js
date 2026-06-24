@@ -435,14 +435,31 @@ async function triggerReserveIntelligenceForVendorCompletion(
 }
 
 /** Nodemailer transport */
+const smtpPort = Number(process.env.MAIL_PORT || process.env.TRANSPORT_PORT || 465);
+const smtpUser = process.env.MAIL_USER || process.env.TRANSPORT_USER;
+const smtpPass = process.env.MAIL_PW || process.env.TRANSPORT_PASS;
+const smtpFrom = process.env.SMTP_FROM || process.env.MAIL_FROM || "support@predictaf.com";
+
 const transporter = nodemailer.createTransport({
-  host: "s1099.usc1.mysecurecloudhost.com",
-  port: 465,
-  secure: true,
+  host: process.env.MAIL_HOST || process.env.TRANSPORT_HOST || "s1099.usc1.mysecurecloudhost.com",
+  port: smtpPort,
+  secure: smtpPort === 465,
   auth: {
-    user: process.env.TRANSPORT_USER,
-    pass: process.env.TRANSPORT_PASS,
+    user: smtpUser,
+    pass: smtpPass,
   },
+  connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT_MS || 15000),
+  greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT_MS || 15000),
+  socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT_MS || 30000),
+});
+
+console.log("SMTP CONFIG", {
+  host: process.env.MAIL_HOST || process.env.TRANSPORT_HOST || "s1099.usc1.mysecurecloudhost.com",
+  port: smtpPort,
+  secure: smtpPort === 465,
+  user: smtpUser,
+  from: smtpFrom,
+  hasPass: Boolean(smtpPass),
 });
 
 // ✅ DROP-IN: Newsletter cron endpoint for your existing server.js
@@ -626,7 +643,7 @@ app.get("/newsletter/send", async (req, res) => {
       try {
         if (!dryRun) {
           await transporter.sendMail({
-            from: "support@predictaf.com",
+            from: smtpFrom,
             to: cr_email,
             subject,
             html: String(issue.text || "").trim(), // ✅ final HTML only
@@ -894,7 +911,7 @@ function buildServiceRecordView(rec) {
 async function sendHtmlEmail(to, subject, templateName, data) {
   const html = renderTemplate(templateName, data);
   return transporter.sendMail({
-    from: "support@predictaf.com",
+    from: smtpFrom,
     to,
     subject,
     html,
@@ -903,7 +920,6 @@ async function sendHtmlEmail(to, subject, templateName, data) {
 
 app.post("/new-lead-email", async (req, res) => {
   try {
-    console.log("new-lead-email request body", req.body);
     const lead = req.body?.lead || req.body || {};
     const to =
       safeEmail(req.body?.to) ||
@@ -956,7 +972,7 @@ app.post("/new-lead-email", async (req, res) => {
       </div>`;
 
     await transporter.sendMail({
-      from: "support@predictaf.com",
+      from: smtpFrom,
       to,
       replyTo: email,
       subject: "New Predictaf website lead",
@@ -1777,7 +1793,7 @@ app.post("/update-document", async (req, res) => {
     }
 
     await transporter.sendMail({
-      from: "support@predictaf.com",
+      from: smtpFrom,
       to: dest,
       subject: `Document ${doc.name} for ${facilityLabel} is expiring soon`,
       html,
@@ -2096,7 +2112,7 @@ app.post("/vendor-docs-email", async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: "support@predictaf.com",
+      from: smtpFrom,
       to: vendor.email,
       subject: "Action needed: Vendor compliance documents for Predictaf",
       html,
@@ -2771,7 +2787,7 @@ app.get("/newsletter/test", async (req, res) => {
         : finalHtml;
 
     await transporter.sendMail({
-      from: "support@predictaf.com",
+      from: smtpFrom,
       to: testTo,
       subject: `[TEST] ${subject}`,
       html: htmlWithPreheader || undefined,
