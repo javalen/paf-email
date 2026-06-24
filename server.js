@@ -476,6 +476,46 @@ console.log("SMTP CONFIG", {
   hasPass: Boolean(smtpPass),
 });
 
+app.get("/smtp-health", async (req, res) => {
+  const startedAt = Date.now();
+  const config = {
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    requireTLS: smtpPort === 587,
+    family: Number(process.env.SMTP_FAMILY || 4),
+    user: smtpUser,
+    from: smtpFrom,
+    hasPass: Boolean(smtpPass),
+  };
+
+  try {
+    await transporter.verify();
+    return res.status(200).json({
+      ok: true,
+      config,
+      elapsedMs: Date.now() - startedAt,
+    });
+  } catch (error) {
+    console.error("smtp-health failed", {
+      code: error?.code || "",
+      command: error?.command || "",
+      message: error?.message || String(error),
+    });
+
+    return res.status(500).json({
+      ok: false,
+      config,
+      elapsedMs: Date.now() - startedAt,
+      error: {
+        code: error?.code || "",
+        command: error?.command || "",
+        message: error?.message || String(error),
+      },
+    });
+  }
+});
+
 // ✅ DROP-IN: Newsletter cron endpoint for your existing server.js
 // Matches your PB schema exactly for newsletter_issues:
 //  - slug, subject, preheader, html, text, status (draft/scheduled/sending/sent), send_at, sent_at, hero_image_url
