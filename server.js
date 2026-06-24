@@ -980,7 +980,14 @@ app.post("/new-lead-email", async (req, res) => {
         <p style="margin:0 0 16px;">A new website lead was saved.</p>
         <table style="border-collapse:collapse;min-width:320px;">${htmlRows}</table>
       </div>`;
-    console.log("Sending new-lead-email to", to, "from", smtpFrom);
+    console.log(
+      "Sending new-lead-email to",
+      to,
+      "from",
+      smtpFrom,
+      "port",
+      smtpPort,
+    );
     await transporter.sendMail({
       from: smtpFrom,
       to,
