@@ -435,15 +435,23 @@ async function triggerReserveIntelligenceForVendorCompletion(
 }
 
 /** Nodemailer transport */
-const smtpPort = Number(
-  process.env.TRANSPORT_PORT || process.env.MAIL_PORT || 465,
+const hasTransportCredentials = Boolean(
+  process.env.TRANSPORT_USER && process.env.TRANSPORT_PASS,
 );
-const smtpHost =
-  process.env.TRANSPORT_HOST ||
-  process.env.MAIL_HOST ||
-  "s1099.usc1.mysecurecloudhost.com";
-const smtpUser = process.env.TRANSPORT_USER || process.env.MAIL_USER;
-const smtpPass = process.env.TRANSPORT_PASS || process.env.MAIL_PW;
+const smtpHost = hasTransportCredentials
+  ? process.env.TRANSPORT_HOST || "s1099.usc1.mysecurecloudhost.com"
+  : process.env.MAIL_HOST || "s1099.usc1.mysecurecloudhost.com";
+const smtpPort = Number(
+  hasTransportCredentials
+    ? process.env.TRANSPORT_PORT || 465
+    : process.env.MAIL_PORT || 465,
+);
+const smtpUser = hasTransportCredentials
+  ? process.env.TRANSPORT_USER
+  : process.env.MAIL_USER;
+const smtpPass = hasTransportCredentials
+  ? process.env.TRANSPORT_PASS
+  : process.env.MAIL_PW;
 const smtpFrom =
   process.env.SMTP_FROM || process.env.MAIL_FROM || "support@predictaf.com";
 
