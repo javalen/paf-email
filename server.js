@@ -454,8 +454,11 @@ const smtpPass = hasTransportCredentials
   : process.env.MAIL_PW;
 const smtpFrom =
   process.env.SMTP_FROM || process.env.MAIL_FROM || "support@predictaf.com";
+const smtpFamily = process.env.SMTP_FAMILY
+  ? Number(process.env.SMTP_FAMILY)
+  : undefined;
 
-const transporter = nodemailer.createTransport({
+const transportOptions = {
   host: smtpHost,
   port: smtpPort,
   secure: smtpPort === 465,
@@ -464,21 +467,29 @@ const transporter = nodemailer.createTransport({
     user: smtpUser,
     pass: smtpPass,
   },
-  family: Number(process.env.SMTP_FAMILY || 4),
-  tls: {
-    servername: smtpHost,
-  },
   connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT_MS || 15000),
   greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT_MS || 15000),
   socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT_MS || 30000),
-});
+};
+
+if (smtpFamily) {
+  transportOptions.family = smtpFamily;
+}
+
+if (process.env.SMTP_TLS_SERVERNAME) {
+  transportOptions.tls = {
+    servername: process.env.SMTP_TLS_SERVERNAME,
+  };
+}
+
+const transporter = nodemailer.createTransport(transportOptions);
 
 console.log("SMTP CONFIG", {
   host: smtpHost,
   port: smtpPort,
   secure: smtpPort === 465,
   requireTLS: smtpPort === 587,
-  family: Number(process.env.SMTP_FAMILY || 4),
+  family: smtpFamily || "default",
   user: smtpUser,
   from: smtpFrom,
   hasPass: Boolean(smtpPass),
@@ -491,7 +502,7 @@ app.get("/smtp-health", async (req, res) => {
     port: smtpPort,
     secure: smtpPort === 465,
     requireTLS: smtpPort === 587,
-    family: Number(process.env.SMTP_FAMILY || 4),
+    family: smtpFamily || "default",
     user: smtpUser,
     from: smtpFrom,
     hasPass: Boolean(smtpPass),
