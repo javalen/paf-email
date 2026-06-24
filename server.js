@@ -438,21 +438,27 @@ async function triggerReserveIntelligenceForVendorCompletion(
 const smtpPort = Number(
   process.env.MAIL_PORT || process.env.TRANSPORT_PORT || 465,
 );
+const smtpHost =
+  process.env.MAIL_HOST ||
+  process.env.TRANSPORT_HOST ||
+  "s1099.usc1.mysecurecloudhost.com";
 const smtpUser = process.env.MAIL_USER || process.env.TRANSPORT_USER;
 const smtpPass = process.env.MAIL_PW || process.env.TRANSPORT_PASS;
 const smtpFrom =
   process.env.SMTP_FROM || process.env.MAIL_FROM || "support@predictaf.com";
 
 const transporter = nodemailer.createTransport({
-  host:
-    process.env.MAIL_HOST ||
-    process.env.TRANSPORT_HOST ||
-    "s1099.usc1.mysecurecloudhost.com",
+  host: smtpHost,
   port: smtpPort,
   secure: smtpPort === 465,
+  requireTLS: smtpPort === 587,
   auth: {
     user: smtpUser,
     pass: smtpPass,
+  },
+  family: Number(process.env.SMTP_FAMILY || 4),
+  tls: {
+    servername: smtpHost,
   },
   connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT_MS || 15000),
   greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT_MS || 15000),
@@ -460,12 +466,11 @@ const transporter = nodemailer.createTransport({
 });
 
 console.log("SMTP CONFIG", {
-  host:
-    process.env.MAIL_HOST ||
-    process.env.TRANSPORT_HOST ||
-    "s1099.usc1.mysecurecloudhost.com",
+  host: smtpHost,
   port: smtpPort,
   secure: smtpPort === 465,
+  requireTLS: smtpPort === 587,
+  family: Number(process.env.SMTP_FAMILY || 4),
   user: smtpUser,
   from: smtpFrom,
   hasPass: Boolean(smtpPass),
@@ -929,7 +934,6 @@ async function sendHtmlEmail(to, subject, templateName, data) {
 
 app.post("/new-lead-email", async (req, res) => {
   try {
-    console.log("new-lead-email request body", req.body);
     const lead = req.body?.lead || req.body || {};
     const to =
       safeEmail(req.body?.to) ||
