@@ -25,7 +25,9 @@ pbMstr.autoCancellation(false);
 const upload = multer({ storage: multer.memoryStorage() });
 
 function normalizeBaseUrl(value = "") {
-  return String(value || "").trim().replace(/\/+$/, "");
+  return String(value || "")
+    .trim()
+    .replace(/\/+$/, "");
 }
 
 function boolLabel(value) {
@@ -49,7 +51,9 @@ function numericCost(value) {
 }
 
 function normalizeStatusText(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function isFinalServiceRecord(record) {
@@ -81,11 +85,12 @@ async function refreshServiceCostToDateForSystem(systemId) {
   if (!id) return null;
 
   const services = await listServiceHistoryForSystem(id);
-  const total = Math.round(
-    services
-      .filter(isFinalServiceRecord)
-      .reduce((sum, service) => sum + numericCost(service?.cost), 0) * 100,
-  ) / 100;
+  const total =
+    Math.round(
+      services
+        .filter(isFinalServiceRecord)
+        .reduce((sum, service) => sum + numericCost(service?.cost), 0) * 100,
+    ) / 100;
 
   await pb.collection("subsys").update(id, { svc_cost_to_date: total });
   return total;
@@ -113,7 +118,9 @@ function parseCompletionLineItems(value) {
       const quantity = numericCost(item?.quantity || 1) || 1;
       const unitCost = numericCost(item?.unit_cost);
       const laborCost = numericCost(item?.labor_cost);
-      const totalCost = numericCost(item?.total_cost || unitCost * quantity + laborCost);
+      const totalCost = numericCost(
+        item?.total_cost || unitCost * quantity + laborCost,
+      );
       return {
         line_type: lineType,
         description,
@@ -131,11 +138,26 @@ function parseCompletionLineItems(value) {
 }
 
 function reserveTextField(name, required = false) {
-  return { name, type: "text", required, min: 0, max: 0, pattern: "", autogeneratePattern: "" };
+  return {
+    name,
+    type: "text",
+    required,
+    min: 0,
+    max: 0,
+    pattern: "",
+    autogeneratePattern: "",
+  };
 }
 
 function reserveNumberField(name) {
-  return { name, type: "number", required: false, min: null, max: null, onlyInt: false };
+  return {
+    name,
+    type: "number",
+    required: false,
+    min: null,
+    max: null,
+    onlyInt: false,
+  };
 }
 
 function reserveBoolField(name) {
@@ -178,7 +200,9 @@ async function ensureServiceHistoryRejectionFields() {
   ];
 
   const existing = await pb.collections.getOne("service_history");
-  const existingNames = new Set((existing.fields || []).map((field) => field.name));
+  const existingNames = new Set(
+    (existing.fields || []).map((field) => field.name),
+  );
   const missing = fields.filter((field) => !existingNames.has(field.name));
   if (!missing.length) return;
 
@@ -217,15 +241,23 @@ async function ensureServiceCompletionLineItemsCollection() {
     reserveBoolField("is_replacement"),
     reserveBoolField("is_routine"),
     reserveTextField("vendor_notes"),
-    reserveSelectField("created_by_source", ["vendor_completion", "manager_entry", "system_import"]),
+    reserveSelectField("created_by_source", [
+      "vendor_completion",
+      "manager_entry",
+      "system_import",
+    ]),
     reserveTextField("completed_by_name"),
     reserveDateField("completed_at"),
     reserveJsonField("metadata"),
   ];
 
   try {
-    const existing = await pb.collections.getOne("service_completion_line_items");
-    const existingNames = new Set((existing.fields || []).map((field) => field.name));
+    const existing = await pb.collections.getOne(
+      "service_completion_line_items",
+    );
+    const existingNames = new Set(
+      (existing.fields || []).map((field) => field.name),
+    );
     const missing = fields.filter((field) => !existingNames.has(field.name));
     if (missing.length) {
       await pb.collections.update(existing.id, {
@@ -246,17 +278,26 @@ async function ensureServiceCompletionLineItemsCollection() {
   }
 }
 
-async function createServiceCompletionLineItems(serviceRecord, items, completedBy, completedAt) {
+async function createServiceCompletionLineItems(
+  serviceRecord,
+  items,
+  completedBy,
+  completedAt,
+) {
   if (!items.length) return [];
   try {
     await ensureServiceCompletionLineItemsCollection();
   } catch (error) {
-    console.error("[Service completion line items] schema ensure failed", error?.message || error);
+    console.error(
+      "[Service completion line items] schema ensure failed",
+      error?.message || error,
+    );
   }
 
   const system = serviceRecord?.expand?.system || {};
   const systemId = serviceRecord?.system || system?.id || "";
-  const facilityId = serviceRecord?.facility || system?.facility || serviceRecord?.fac_id || "";
+  const facilityId =
+    serviceRecord?.facility || system?.facility || serviceRecord?.fac_id || "";
   const clientId = serviceRecord?.client || system?.client_id || "";
   const created = [];
 
@@ -269,14 +310,18 @@ async function createServiceCompletionLineItems(serviceRecord, items, completedB
       ...item,
       created_by_source: "vendor_completion",
       completed_by_name: completedBy || "",
-      completed_at: completedAt ? new Date(completedAt).toISOString() : new Date().toISOString(),
+      completed_at: completedAt
+        ? new Date(completedAt).toISOString()
+        : new Date().toISOString(),
       metadata: {
         source: "public_vendor_completion_page",
         service_status: serviceRecord.status || "",
       },
     };
     try {
-      created.push(await pb.collection("service_completion_line_items").create(payload));
+      created.push(
+        await pb.collection("service_completion_line_items").create(payload),
+      );
     } catch (error) {
       console.error("[Service completion line items] create failed", {
         serviceRecordId: serviceRecord.id,
@@ -289,11 +334,16 @@ async function createServiceCompletionLineItems(serviceRecord, items, completedB
 }
 
 function isFinalServiceStatus(value) {
-  const status = String(value || "").trim().toLowerCase();
+  const status = String(value || "")
+    .trim()
+    .toLowerCase();
   return status === "complete" || status === "closed";
 }
 
-async function triggerReserveIntelligenceForVendorCompletion(record, completedBy = "") {
+async function triggerReserveIntelligenceForVendorCompletion(
+  record,
+  completedBy = "",
+) {
   const baseUrl = normalizeBaseUrl(process.env.PAF_CLIENTS_SVR_URL || "");
   const apiKey = String(
     process.env.PAF_CLIENTS_SVR_API_KEY ||
@@ -360,17 +410,13 @@ async function triggerReserveIntelligenceForVendorCompletion(record, completedBy
   });
 
   try {
-    const response = await axios.post(
-      endpoint,
-      payload,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-        },
-        timeout: 15000,
+    const response = await axios.post(endpoint, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
       },
-    );
+      timeout: 15000,
+    });
     logReserveTrigger("completed", {
       serviceRecordId: record.id,
       httpStatus: response.status,
@@ -580,7 +626,7 @@ app.get("/newsletter/send", async (req, res) => {
       try {
         if (!dryRun) {
           await transporter.sendMail({
-            from: "support@predictiveaf.com",
+            from: "support@predictaf.com",
             to: cr_email,
             subject,
             html: String(issue.text || "").trim(), // ✅ final HTML only
@@ -848,12 +894,82 @@ function buildServiceRecordView(rec) {
 async function sendHtmlEmail(to, subject, templateName, data) {
   const html = renderTemplate(templateName, data);
   return transporter.sendMail({
-    from: "support@predictiveaf.com",
+    from: "support@predictaf.com",
     to,
     subject,
     html,
   });
 }
+
+app.post("/new-lead-email", async (req, res) => {
+  try {
+    console.log("new-lead-email request body", req.body);
+    const lead = req.body?.lead || req.body || {};
+    const to =
+      safeEmail(req.body?.to) ||
+      safeEmail(process.env.LEAD_NOTIFICATION_TO) ||
+      "leads@predictaf.com";
+    const name = String(lead.name || lead.full_name || "").trim();
+    const email = safeEmail(lead.email);
+    const source = String(lead.source || "website").trim();
+    const leadId = String(lead.id || "").trim();
+    const created = String(lead.created || new Date().toISOString()).trim();
+
+    if (!name) return res.status(400).send("Missing lead name.");
+    if (!email) return res.status(400).send("Missing lead email.");
+
+    const text = [
+      "A new Predictaf website lead was saved.",
+      "",
+      `Name: ${name}`,
+      `Email: ${email}`,
+      `Source: ${source}`,
+      leadId ? `Lead ID: ${leadId}` : "",
+      `Saved: ${created}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const rows = [
+      ["Name", name],
+      ["Email", email],
+      ["Source", source],
+      leadId ? ["Lead ID", leadId] : null,
+      ["Saved", created],
+    ].filter(Boolean);
+
+    const htmlRows = rows
+      .map(
+        ([label, value]) => `
+          <tr>
+            <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;">${escapeHtml(label)}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#111827;">${escapeHtml(value)}</td>
+          </tr>`,
+      )
+      .join("");
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827;">
+        <h2 style="margin:0 0 12px;">New Predictaf Website Lead</h2>
+        <p style="margin:0 0 16px;">A new website lead was saved.</p>
+        <table style="border-collapse:collapse;min-width:320px;">${htmlRows}</table>
+      </div>`;
+
+    await transporter.sendMail({
+      from: "support@predictaf.com",
+      to,
+      replyTo: email,
+      subject: "New Predictaf website lead",
+      text,
+      html,
+    });
+
+    res.status(200).json({ ok: true, to });
+  } catch (e) {
+    console.error("new-lead-email failed", e);
+    res.status(500).send(e.toString());
+  }
+});
 
 /** -----------------------
  * Admin / verification flows
@@ -1479,7 +1595,9 @@ app.post("/email-service-co", async (req, res) => {
       explicitTo: boolLabel(Boolean(req.body?.to)),
       pbHost: process.env.PB_HOST || "",
       mailHost: process.env.PAF_MAIL_HOST || "",
-      hasFallbackServiceEmail: boolLabel(Boolean(process.env.FALLBACK_SERVICE_EMAIL)),
+      hasFallbackServiceEmail: boolLabel(
+        Boolean(process.env.FALLBACK_SERVICE_EMAIL),
+      ),
     });
     if (!payload || !payload.id) {
       logServiceEmail("rejected", {
@@ -1659,7 +1777,7 @@ app.post("/update-document", async (req, res) => {
     }
 
     await transporter.sendMail({
-      from: "support@predictiveaf.com",
+      from: "support@predictaf.com",
       to: dest,
       subject: `Document ${doc.name} for ${facilityLabel} is expiring soon`,
       html,
@@ -1819,7 +1937,7 @@ app.post(
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Document Updated</title>
   <!-- Optional success redirect after a few seconds:
-  <meta http-equiv="refresh" content="5;url=https://www.predictiveaf.com" />
+  <meta http-equiv="refresh" content="5;url=https://www.predictaf.com" />
   -->
   <style>
     :root{
@@ -1904,7 +2022,7 @@ app.post(
 </head>
 <body>
   <div class="wrap">
-    <img class="logo" src="https://www.predictiveaf.com/assets/paf-BMFchRbW.png" alt="Predictaf Logo" />
+    <img class="logo" src="https://www.predictaf.com/assets/paf-BMFchRbW.png" alt="Predictaf Logo" />
 
     <div class="card">
       <h1>Thank you! Your document has been uploaded.</h1>
@@ -1914,7 +2032,7 @@ app.post(
       <!-- Optional CTA back to your app/portal -->
       <!--
       <div class="cta">
-        <a class="btn" href="https://app.predictiveaf.com">Back to Predictaf</a>
+        <a class="btn" href="https://app.predictaf.com">Back to Predictaf</a>
       </div>
       -->
     </div>
@@ -1978,7 +2096,7 @@ app.post("/vendor-docs-email", async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: "support@predictiveaf.com",
+      from: "support@predictaf.com",
       to: vendor.email,
       subject: "Action needed: Vendor compliance documents for Predictaf",
       html,
@@ -2161,7 +2279,7 @@ app.post(
 </head>
 <body>
   <div class="wrap">
-    <img class="logo" src="https://www.predictiveaf.com/assets/paf-BMFchRbW.png" alt="Predictaf Logo" />
+    <img class="logo" src="https://www.predictaf.com/assets/paf-BMFchRbW.png" alt="Predictaf Logo" />
     <div class="card">
       <h1>Thank you! Your documents have been updated.</h1>
       <p>You can safely close this window.</p>
@@ -2399,7 +2517,8 @@ app.post(
   "/service/:id/complete",
   upload.single("invoice"),
   async (req, res) => {
-    const { name, date, cost, warranty, covered, expires, line_items_json } = req.body || {};
+    const { name, date, cost, warranty, covered, expires, line_items_json } =
+      req.body || {};
     if (!name || !date)
       return res.status(400).send("Name and Date are required.");
     const completionLineItems = parseCompletionLineItems(line_items_json);
@@ -2469,9 +2588,11 @@ app.post(
         if (!isNaN(parsed) && parsed >= 0) update["cost"] = parsed;
       }
       await pb.collection("service_history").update(req.params.id, update);
-      const updatedService = await pb.collection("service_history").getOne(req.params.id, {
-        expand: "servicer,system",
-      });
+      const updatedService = await pb
+        .collection("service_history")
+        .getOne(req.params.id, {
+          expand: "servicer,system",
+        });
       const createdLineItems = await createServiceCompletionLineItems(
         updatedService,
         completionLineItems,
@@ -2479,16 +2600,24 @@ app.post(
         date,
       );
       const updatedSystemId =
-        updatedService?.system || updatedService?.system_id || updatedService?.expand?.system?.id || "";
-      await refreshServiceCostToDateForSystem(updatedSystemId).catch((rollupError) => {
-        console.warn("[Service completion] Could not refresh system service cost-to-date", {
-          serviceHistoryId: req.params.id,
-          systemId: updatedSystemId,
-          status: rollupError?.status,
-          message: rollupError?.message,
-          data: rollupError?.data || null,
-        });
-      });
+        updatedService?.system ||
+        updatedService?.system_id ||
+        updatedService?.expand?.system?.id ||
+        "";
+      await refreshServiceCostToDateForSystem(updatedSystemId).catch(
+        (rollupError) => {
+          console.warn(
+            "[Service completion] Could not refresh system service cost-to-date",
+            {
+              serviceHistoryId: req.params.id,
+              systemId: updatedSystemId,
+              status: rollupError?.status,
+              message: rollupError?.message,
+              data: rollupError?.data || null,
+            },
+          );
+        },
+      );
 
       // Add system comment
       try {
@@ -2642,7 +2771,7 @@ app.get("/newsletter/test", async (req, res) => {
         : finalHtml;
 
     await transporter.sendMail({
-      from: "support@predictiveaf.com",
+      from: "support@predictaf.com",
       to: testTo,
       subject: `[TEST] ${subject}`,
       html: htmlWithPreheader || undefined,
@@ -2682,8 +2811,8 @@ app.listen(PORT, () => {
       hasClientsSvrApiKey: boolLabel(
         Boolean(
           process.env.PAF_CLIENTS_SVR_API_KEY ||
-            process.env.CLIENTS_SVR_API_KEY ||
-            process.env.PAF_CLIENTS_API_KEY,
+          process.env.CLIENTS_SVR_API_KEY ||
+          process.env.PAF_CLIENTS_API_KEY,
         ),
       ),
       pbHost: process.env.PB_HOST || "",
