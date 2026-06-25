@@ -983,6 +983,7 @@ function buildServiceRecordView(rec) {
 /** Helper: tiny wrapper to send an HTML email rendered from a template */
 async function sendHtmlEmail(to, subject, templateName, data) {
   const html = renderTemplate(templateName, data);
+  console.log("Sending email to", to, "from", smtpFrom, "port", smtpPort);
   return transporter.sendMail({
     from: smtpFrom,
     to,
