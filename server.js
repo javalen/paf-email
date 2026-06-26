@@ -457,8 +457,8 @@ const transportOptions = {
     user: smtpUser,
     pass: smtpPass,
   },
-  connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT_MS || 15000),
-  greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT_MS || 15000),
+  connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT_MS || 30000),
+  greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT_MS || 30000),
   socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT_MS || 30000),
 };
 
@@ -472,7 +472,21 @@ if (process.env.SMTP_TLS_SERVERNAME) {
   };
 }
 
-const transporter = nodemailer.createTransport(transportOptions);
+//const transporter = nodemailer.createTransport(transportOptions);
+const transporter = nodemailer.createTransport({
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpPort === 465,
+  auth: {
+    user: smtpUser,
+    pass: smtpPass,
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+  logger: true,
+  debug: true,
+});
 
 console.log("SMTP CONFIG", {
   host: smtpHost,
@@ -971,15 +985,69 @@ function buildServiceRecordView(rec) {
 }
 
 /** Helper: tiny wrapper to send an HTML email rendered from a template */
+// async function sendHtmlEmail(to, subject, templateName, data) {
+//   const html = renderTemplate(templateName, data);
+//   console.log("Sending email to", to, "from", smtpFrom, "port", smtpPort);
+//   return transporter.sendMail({
+//     from: smtpFrom,
+//     to,
+//     subject,
+//     html,
+//   });
+// }
+
 async function sendHtmlEmail(to, subject, templateName, data) {
   const html = renderTemplate(templateName, data);
-  console.log("Sending email to", to, "from", smtpFrom, "port", smtpPort);
-  return transporter.sendMail({
+
+  console.log("==================================================");
+  console.log("Preparing to send email");
+  console.log({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
     from: smtpFrom,
     to,
     subject,
-    html,
+    template: templateName,
+    time: new Date().toISOString(),
   });
+
+  try {
+    // Verify SMTP connectivity first
+    await transporter.verify();
+    console.log("SMTP connection verified.");
+
+    const info = await transporter.sendMail({
+      from: smtpFrom,
+      to,
+      subject,
+      html,
+    });
+
+    console.log("Email sent successfully.");
+    console.log({
+      messageId: info.messageId,
+      response: info.response,
+      accepted: info.accepted,
+      rejected: info.rejected,
+      pending: info.pending,
+    });
+
+    return info;
+  } catch (err) {
+    console.error("========================================");
+    console.error("EMAIL SEND FAILED");
+    console.error("Message :", err.message);
+    console.error("Code    :", err.code);
+    console.error("Command :", err.command);
+    console.error("Response:", err.response);
+    console.error("ResponseCode:", err.responseCode);
+    console.error("Stack:");
+    console.error(err.stack);
+    console.error("========================================");
+
+    throw err;
+  }
 }
 
 app.post("/new-lead-email", async (req, res) => {
