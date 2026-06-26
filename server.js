@@ -438,22 +438,12 @@ async function triggerReserveIntelligenceForVendorCompletion(
 const hasTransportCredentials = Boolean(
   process.env.TRANSPORT_USER && process.env.TRANSPORT_PASS,
 );
-const smtpHost = hasTransportCredentials
-  ? process.env.TRANSPORT_HOST || "s1099.usc1.mysecurecloudhost.com"
-  : process.env.MAIL_HOST || "s1099.usc1.mysecurecloudhost.com";
-const smtpPort = Number(
-  hasTransportCredentials
-    ? process.env.TRANSPORT_PORT || 465
-    : process.env.MAIL_PORT || 465,
-);
-const smtpUser = hasTransportCredentials
-  ? process.env.TRANSPORT_USER
-  : process.env.MAIL_USER;
-const smtpPass = hasTransportCredentials
-  ? process.env.TRANSPORT_PASS
-  : process.env.MAIL_PW;
-const smtpFrom =
-  process.env.SMTP_FROM || process.env.MAIL_FROM || "support@predictaf.com";
+const smtpHost = process.env.MAIL_HOST;
+const smtpPort = process.env.MAIL_PORT;
+
+const smtpUser = process.env.TRANSPORT_USER;
+const smtpPass = process.env.TRANSPORT_PASS;
+const smtpFrom = "support@predictaf.com";
 const smtpFamily = process.env.SMTP_FAMILY
   ? Number(process.env.SMTP_FAMILY)
   : undefined;
